@@ -35,3 +35,16 @@ ul
     display: flex;
     flex-direction: column;
 }
+
+.introFlex 
+{
+    display: flex;
+    flex-direction: column;
+    text-align: justify;
+    margin: 20px;
+}
+
+p
+{
+    padding-bottom: 10px;
+}

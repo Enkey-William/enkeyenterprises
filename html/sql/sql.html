@@ -1,0 +1,31 @@
+<!doctype html>
+<html lang = "en-us">
+<head>
+    <meta charset = "utf-8">
+    <title>Oracle SQL by Bill Enkey</title>
+    <meta name = "author" content = "Gidgiddoni">
+    <meta name = "viewport" content = "width = device-width">
+    <link href = "css/sql.css" type = "text/css" rel = "stylesheet" media = "screen">
+</head>
+    <body>
+        <header><h1>Oracle SQL by Bill Enkey</h1></header>
+        <h2>SQL Documents</h2>
+        <nav><ul></ul></nav>
+        <h2>Example code</h2>
+        <p><pre><code>
+            CREATE TABLE system_user_lab
+            ( system_user_lab_id          NUMBER
+            , system_user_name            VARCHAR2(20) CONSTRAINT nn_system_user_lab_1 NOT NULL
+            , system_user_group_id        NUMBER       CONSTRAINT nn_system_user_lab_2 NOT NULL
+            , system_user_type            NUMBER       CONSTRAINT nn_system_user_lab_3 NOT NULL
+            , first_name                  VARCHAR2(20)
+            , middle_name                 VARCHAR2(20)
+            , last_name                   VARCHAR2(20)
+            , created_by                  NUMBER       CONSTRAINT nn_system_user_lab_4 NOT NULL
+            , creation_date               DATE         CONSTRAINT nn_system_user_lab_5 NOT NULL
+            , last_updated_by             NUMBER       CONSTRAINT nn_system_user_lab_6 NOT NULL
+            , last_update_date            DATE         CONSTRAINT nn_system_user_lab_7 NOT NULL
+            , CONSTRAINT pk_system_user_lab_1 PRIMARY KEY(system_user_lab_id)
+            , CONSTRAINT fk_system_user_lab_1 FOREIGN KEY(created_by) REFERENCES system_user_lab(system_user_lab_id)
+            , CONSTRAINT fk_system_user_lab_2 FOREIGN KEY(last_updated_by) REFERENCES system_user_lab(system_user_lab_id));</code></pre></p>
+    </body>
