@@ -1,0 +1,39 @@
+<!doctype html>
+<html lang = "en-us">
+<head>
+    <meta charset = "utf-8">
+    <title>Oracle SQL examples by Bill Enkey</title>
+    <meta name = "author" content = "Gidgiddoni">
+    <meta name = "viewport" content = "width = device-width">
+    <link href = "../../css/lab.css" type = "text/css" rel = "stylesheet" media = "screen">
+</head>
+    <body>
+        <header><h1>LAB 10</h1></header>
+        <main>
+            <h2>Code</h2>
+            <p>This lab was some involved INSERT statements. Oracle SQL only allows one row to be added at a time when using the VALUES clause; however, a SELECT statement can be used to insert millions of rows at a time. Below is an example of one of the SELECT statements I built. I'll show more in lab 11, where a more sensible MERGE statement is used to add data.<pre><code>
+            SELECT DISTINCT r.rental_id AS rental_id
+             ,                c.contact_id AS customer_id
+             ,                TRUNC(tu.check_out_date) AS check_out_date
+             ,                TRUNC(tu.return_date) AS return_date
+             ,                1 AS created_by
+             ,                SYSDATE AS creation_date
+             ,                1 AS last_updated_by
+             ,                SYSDATE AS last_update_date
+              FROM contact c INNER JOIN member m
+                ON c.member_id = m.member_id INNER JOIN transaction_upload tu
+                ON m.account_number = tu.account_number
+               AND c.first_name = tu.first_name
+               AND NVL(c.middle_name, 'x') = NVL(tu.middle_name, 'x')
+               AND c.last_name = tu.last_name LEFT JOIN rental r
+                ON c.contact_id = r.customer_id 
+               AND TRUNC(tu.check_out_date) = TRUNC(r.check_out_date)
+               AND TRUNC(tu.return_date) = TRUNC(r.return_date);
+            </code></pre></p>
+        </main>
+        <footer>
+            <h2>Work done by Bill Enkey in a database course provided at Brigham Young University, Idaho</h2>
+            <h2>NOT intended to be used or copied.</h2>
+        </footer> 
+    </body>
+</html>

@@ -1,0 +1,85 @@
+<!doctype html>
+<html lang = "en-us">
+<head>
+    <meta charset = "utf-8">
+    <title>Oracle PL/SQL examples by Bill Enkey</title>
+    <meta name = "author" content = "Gidgiddoni">
+    <meta name = "viewport" content = "width = device-width">
+    <link href = "../../css/lab.css" type = "text/css" rel = "stylesheet" media = "screen">
+</head>
+    <body>
+        <header><h1>LAB 03</h1></header>
+        <main>
+            <h2>Code</h2>
+            <p>This lab shows the use of regular expressions, controls structures, and the ability to evaluate input.<pre><code>
+            /* 
+            ** William Enkey
+            ** CIT 325, McLaughlin
+            ** 2017, FALL
+            */
+
+            SET SERVEROUTPUT ON SIZE UNLIMITED;
+            SET VERIFY OFF;
+            SPOOL apply_plsql_lab3.log
+            ALTER SESSION SET NLS_DATE_FORMAT = "DD-MON-YYYY";
+
+            /* 
+            ** Instead of altering the session, which alters behavior, 
+            **   we should alter our code to accept more parameters.
+            ** year NUMBER := 2;
+            ** IF length (x) = 11 THEN year := 4; END IF;
+            ** IF year = 2 THEN x_date := TO_DATE(y_date, 'DD-MON-YY);
+            ** ELSE x_date := TO_DATE(y_date, 'DD-MON-YYYY');
+            ** END IF;
+            */
+
+            DECLARE
+                TYPE three_type IS RECORD -- Declare a type
+                (xnum    NUMBER
+                ,xdate   DATE
+                ,xstring VARCHAR2(100));
+
+                lv_struct THREE_TYPE; -- Declare a variable of the record type
+
+                TYPE list IS TABLE OF VARCHAR2(100); --Declare a list of strings
+
+                lv_strings LIST; -- Declare a list of the collection type
+
+                lv_lab_input01 VARCHAR2(100);
+                lv_lab_input02 VARCHAR2(100);
+                lv_lab_input03 VARCHAR2(100); -- Declare a few independent variables
+
+            BEGIN
+
+                lv_lab_input01 := '&1';
+                lv_lab_input02 := '&2';
+                lv_lab_input03 := '&3'; -- Construct instance of input variables
+
+                lv_strings := list(lv_lab_input01, lv_lab_input02, lv_lab_input03);-- Assign input variables
+
+                FOR i IN 1..lv_strings.COUNT LOOP
+                    IF verify_date(lv_strings(i)) IS NOT NULL
+                        THEN lv_struct.xdate := lv_strings(i);
+                    ELSIF REGEXP_LIKE(lv_strings(i),'[[:digit:]]{' || LENGTH(lv_strings(i)) || ',}')
+                        THEN lv_struct.xnum := lv_strings(i);
+                    ELSIF REGEXP_LIKE(lv_strings(i), '^[[:alnum:]]*$','i')
+                        THEN lv_struct.xstring := lv_strings(i);
+                    END IF;
+                END LOOP;
+
+                dbms_output.put_line('Record:: [' || lv_struct.xnum || ']  [' || lv_struct.xstring || ']  [' || lv_struct.xdate || ']');-- Print the results
+
+            END;
+            /
+
+            SPOOL OFF
+
+            EXIT
+            </code></pre></p>
+        </main>
+        <footer>
+                <h2>Work done by Bill Enkey in a database course provided at Brigham Young University, Idaho</h2>
+                <h2>NOT intended to be used or copied.</h2>
+        </footer>
+    </body>
+</html>

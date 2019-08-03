@@ -1,0 +1,87 @@
+<!doctype html>
+<html lang = "en-us">
+<head>
+    <meta charset = "utf-8">
+    <title>Oracle PL/SQL examples by Bill Enkey</title>
+    <meta name = "author" content = "Gidgiddoni">
+    <meta name = "viewport" content = "width = device-width">
+    <link href = "../../css/lab.css" type = "text/css" rel = "stylesheet" media = "screen">
+</head>
+    <body>
+        <header><h1>Oracle PL/SQL examples by Bill Enkey</h1></header>
+        <main>
+            <h2>PL/SQL Documents</h2>
+            <p>Below is a list of some of the projects done during a course at Brigham Young University, Idaho.</p>
+            <nav class="lablist"><ul>
+            <li><a href="lab3.html" target="_blank">LAB 03, Programming Basics</a></li>
+            <li><a href="lab5.html" target="_blank">LAB 05, Normalization</a></li>
+            <li><a href="lab8.html" target="_blank">LAB 08, Packages, Procedures and Functions</a></li>
+            <li><a href="lab10.html" target="_blank">LAB 10, Objects and inheritance</a></li>
+            <li><a href="lab11.html" target="_blank">LAB 11, Triggers</a></li>
+            </ul></nav>
+            <h2>Example Code</h2>
+            <p>This is from work done during the first few weeks of class. This shows basic understanding of objects, collections, and control structures. As you can see, a nested loop is used to print out the lyrics to "Twelve Days of Christmas". Not one of my favorites, so I tempered it with the Redneck version as sung by Jeff Foxworthy. The key piece to see is that the inner loop counts down, while the outer loop counts up.<pre><code>
+            /* 
+            ** William Enkey
+            ** CIT 325, McLaughlin
+            ** 2017, Fall
+            */ 
+
+            SPOOL apply_plsql_lab4.log
+
+            CREATE OR REPLACE
+            TYPE lyrics AS OBJECT
+            (day_name   VARCHAR2(8)
+            ,gift_name  VARCHAR2(24));
+            /
+
+            DECLARE
+            TYPE days IS TABLE OF VARCHAR2(8);
+
+            TYPE verse IS TABLE OF lyrics;
+
+            lv_days_list DAYS;
+            lv_gifts_list VERSE;
+
+            BEGIN
+
+            lv_days_list := days('first', 'second', 'third', 'fourth', 'fifth', 'sixth', 'seventh', 'eighth', 'ninth', 'tenth', 'eleventh', 'twelfth');
+
+            lv_gifts_list := verse(lyrics('and sum', 'Parts to a Mustang GT')
+                                        , lyrics('Two', 'Hunt-n dogs')
+                                        , lyrics('Three', 'Shotgun shells')
+                                        , lyrics('Four', 'Big mud tires')
+                                        , lyrics('Five', 'Flannel shirts')
+                                        , lyrics('Six', 'cans uh Spam')
+                                        , lyrics('Seven', 'Paks uh Red Man')
+                                        , lyrics('Eight', ' Table dancers')
+                                        , lyrics('Nine', 'Years probration')
+                                        , lyrics('Ten', 'uh Copenhagen')
+                                        , lyrics('Eleven', 'Raslin tikets')
+                                        , lyrics('Twelve', 'Pak uh bud'));
+
+            FOR i IN 1..lv_days_list.LAST LOOP 
+            dbms_output.put_line('On the ' || lv_days_list(i) || ' day of Christmas');
+            dbms_output.put_line('my True Love gave to me ');
+                FOR j IN REVERSE 1..i LOOP --at some point try FOR j IN REVERSE 1..i LOOP ...lv_gifts_list.LAST..lv_gifts_list.FIRST LOOP
+                    IF i = 1 THEN 
+                    dbms_output.put_line('Sum ' || lv_gifts_list(j).gift_name);
+                    ELSE
+                    dbms_output.put_line('-' || lv_gifts_list(j).day_name || ' ' || lv_gifts_list(j).gift_name);
+                    END IF;
+                END LOOP;
+            dbms_output.put_line(CHR(13));
+            END LOOP;
+
+            END;
+            /
+
+            SPOOL OFF
+            </code></pre></p>
+        </main>
+        <footer>
+            <h2>Work done by Bill Enkey in a database course provided at Brigham Young University, Idaho</h2>
+            <h2>NOT intended to be used or copied.</h2>
+        </footer>
+    </body>
+</html>

@@ -1,0 +1,411 @@
+<!doctype html>
+<html lang = "en-us">
+<head>
+    <meta charset = "utf-8">
+    <title>Oracle PL/SQL examples by Bill Enkey</title>
+    <meta name = "author" content = "Gidgiddoni">
+    <meta name = "viewport" content = "width = device-width">
+    <link href = "../../css/lab.css" type = "text/css" rel = "stylesheet" media = "screen">
+</head>
+    <body>
+        <header><h1>LAB 10</h1></header>
+        <main>
+            <h2>Code</h2>
+            <p>This mostly shows objects and inheritance, though there are some good logic bits, too. <pre><code>
+            /*
+            ** William Enkey
+            ** CIT 325, McLaughlin
+            ** 2017, FALL
+            */
+
+            ----------------------------------------------------------------------------------------------------------------
+            -------------------------------------------------LAB 10--------------------------------------------------------
+            ----------------------------------------------------------------------------------------------------------------
+            -- @/home/student/Data/cit325/oracle/lib/cleanup_oracle.sql
+            -- @/home/student/Data/cit325/oracle/lib/Oracle12cPLSQLCode/Introduction/create_video_store.sql
+
+            SPOOL apply_plsql_lab10.log
+
+            -- DROP tables and objects for re-iterable and testing purposes --
+
+            BEGIN
+            FOR i in (SELECT null FROM user_tables WHERE table_name = 'LOGGER') LOOP
+            EXECUTE IMMEDIATE 'DROP TABLE logger CASCADE CONSTRAINTS';
+            END LOOP;
+            FOR i IN (SELECT null FROM user_sequences WHERE sequence_name = 'LOGGER_S') LOOP
+            EXECUTE IMMEDIATE 'DROP SEQUENCE logger_s';
+            END LOOP;
+            END;
+            /
+
+            DROP TYPE base_t;
+
+            -- STEP 01 --
+
+            CREATE OR REPLACE TYPE base_t IS OBJECT
+            ( oname          VARCHAR2(30)
+            , name           VARCHAR2(30)
+            , CONSTRUCTOR FUNCTION base_t RETURN SELF AS RESULT
+            , CONSTRUCTOR FUNCTION base_t ( oname   VARCHAR2
+            , name    VARCHAR2) RETURN SELF AS RESULT
+            , MEMBER FUNCTION  get_name  RETURN     VARCHAR2
+            , MEMBER FUNCTION  get_oname RETURN     VARCHAR2
+            , MEMBER PROCEDURE set_oname (oname     VARCHAR2)
+            , MEMBER FUNCTION  to_string RETURN     VARCHAR2)
+            INSTANTIABLE NOT FINAL;
+            /
+
+            DESC base_t;
+
+            CREATE TABLE logger
+            ( logger_id      NUMBER
+            , log_text       BASE_T);
+
+            CREATE SEQUENCE logger_s START WITH 1001;
+
+            DESC logger;
+
+            CREATE OR REPLACE TYPE BODY base_t IS
+
+            -- DEFAULT CONSTRUCTOR --
+            CONSTRUCTOR FUNCTION base_t RETURN SELF AS RESULT IS
+            BEGIN
+            self.oname := 'BASE_T';
+            RETURN;
+            END;
+
+            -- OVERRIDE CONSTRUCTOR --
+            CONSTRUCTOR FUNCTION base_T
+            ( oname     VARCHAR2
+            , name      VARCHAR2) RETURN SELF AS RESULT IS
+
+            BEGIN
+
+            self.oname := oname;
+
+            IF name IS NOT NULL AND name IN ('NEW','OLD') THEN
+            self.name := name;
+            END IF;
+
+            RETURN;
+
+            END;
+
+            -- FUNCTION GET_NAME --
+            MEMBER FUNCTION get_name RETURN VARCHAR2 IS
+            BEGIN
+            RETURN self.name;
+            END get_name;
+
+            -- FUNCTION GET_ONAME --
+            MEMBER FUNCTION get_oname RETURN VARCHAR2 IS
+            BEGIN
+            RETURN self.oname;
+            END get_oname;
+
+            -- PROCEDURE SET_ONAME --
+            MEMBER PROCEDURE set_oname (oname VARCHAR2) IS
+            BEGIN
+            self.oname := oname;
+            END set_oname;
+
+
+            -- FUNCTION to_string --
+            MEMBER FUNCTION to_string RETURN VARCHAR2 IS
+            BEGIN
+            RETURN '['||self.oname||']';
+            END to_string;
+
+            -- END BODY base_t --
+            END;
+            /
+
+            DECLARE
+            /* Create a default instance of the object type. */
+            lv_instance  BASE_T := base_t();
+            BEGIN
+            /* Print the default value of the oname attribute. */
+            dbms_output.put_line('Default  : ['||lv_instance.get_oname()||']');
+
+            /* Set the oname value to a new value. */
+            lv_instance.set_oname('SUBSTITUTE');
+
+            /* Print the default value of the oname attribute. */
+            dbms_output.put_line('Override : ['||lv_instance.get_oname()||']');
+            END;
+            /
+
+            INSERT INTO logger
+            VALUES (logger_s.NEXTVAL, base_t());
+
+            DECLARE
+            /* Declare a variable of the UDT type. */
+            lv_base  BASE_T;
+            BEGIN
+            /* Assign an instance of the variable. */
+            lv_base := base_t(
+            oname => 'BASE_T'
+            , name => 'Unset' );
+
+            /* Insert instance of the base_t object type into table. */
+            INSERT INTO logger
+            VALUES (logger_s.NEXTVAL, lv_base);
+
+            /* Commit the record. */
+            COMMIT;
+            END;
+            /
+
+            DESC base_t;
+
+            COLUMN oname     FORMAT A20
+            COLUMN get_name  FORMAT A20
+            COLUMN to_string FORMAT A20
+            SELECT t.logger_id
+            ,      t.log.oname AS oname
+            ,      NVL(t.log.get_name(),'Unset') AS get_name
+            ,      t.log.to_string() AS to_string
+            FROM  (SELECT l.logger_id
+            ,      TREAT(l.log_text AS base_t) AS log
+            FROM   logger l) t
+            WHERE  t.log.oname = 'BASE_T';
+
+            -- STEP 02 --
+
+            CREATE OR REPLACE TYPE item_t UNDER base_t
+            ( item_id               NUMBER
+            , item_barcode          VARCHAR2(20)
+            , item_type             NUMBER
+            , item_title            VARCHAR2(60)
+            , item_subtitle         VARCHAR2(60)
+            , item_rating           VARCHAR2(8)
+            , item_rating_agency    VARCHAR2(4)
+            , item_release_date     DATE
+            , created_by            NUMBER
+            , creation_date         DATE
+            , last_updated_by       NUMBER
+            , last_update_date      DATE
+            , CONSTRUCTOR FUNCTION item_t
+            ( oname                 VARCHAR2
+            , name                  VARCHAR2
+            , item_id               NUMBER
+            , item_barcode          VARCHAR2
+            , item_type             NUMBER
+            , item_title            VARCHAR2
+            , item_subtitle         VARCHAR2
+            , item_rating           VARCHAR2
+            , item_rating_agency    VARCHAR2
+            , item_release_date     DATE
+            , created_by            NUMBER
+            , creation_date         DATE
+            , last_updated_by       NUMBER
+            , last_update_date      DATE) RETURN SELF AS RESULT
+            , OVERRIDING MEMBER FUNCTION get_name  RETURN VARCHAR2
+            , OVERRIDING MEMBER FUNCTION to_string RETURN VARCHAR2)
+            INSTANTIABLE NOT FINAL;
+            /
+
+            CREATE OR REPLACE TYPE BODY item_t IS
+
+            -- DEFAULT CONSTRUCTOR --
+            CONSTRUCTOR FUNCTION item_t
+            ( oname                 VARCHAR2
+            , name                  VARCHAR2
+            , item_id               NUMBER
+            , item_barcode          VARCHAR2
+            , item_type             NUMBER
+            , item_title            VARCHAR2
+            , item_subtitle         VARCHAR2
+            , item_rating           VARCHAR2
+            , item_rating_agency    VARCHAR2
+            , item_release_date     DATE
+            , created_by            NUMBER
+            , creation_date         DATE
+            , last_updated_by       NUMBER
+            , last_update_date      DATE)   RETURN SELF AS RESULT IS
+            BEGIN
+
+            self.oname              := oname;
+
+            IF name IS NOT NULL AND name IN ('NEW', 'OLD') THEN
+            self.name := name;
+            END IF;
+
+            self.item_id            := item_id;
+            self.item_barcode       := item_barcode;
+            self.item_type          := item_type;
+            self.item_title         := item_title;
+            self.item_subtitle      := item_subtitle;
+            self.item_rating        := item_rating;
+            self.item_rating_agency := item_rating_agency;
+            self.item_release_date  := item_release_date;
+            self.created_by         := created_by;
+            self.creation_date      := creation_date;
+            self.last_updated_by    := last_updated_by;
+            self.last_update_date   := last_update_date;
+
+            RETURN;
+            END;
+
+            -- OVERRIDING get_name --
+            OVERRIDING MEMBER FUNCTION get_name RETURN VARCHAR2 IS
+            BEGIN
+            RETURN (self AS base_t).get_name();
+            END get_name;
+
+            -- OVERRIDING to_string --
+            OVERRIDING MEMBER FUNCTION to_string RETURN VARCHAR2 IS
+            BEGIN
+            RETURN (self AS base_t).to_string()||'.['||self.name||']';
+            END to_string;
+
+            -- END of item_t
+            END;
+            /
+
+            DESC item_t;
+
+            CREATE OR REPLACE TYPE contact_t UNDER base_t
+            ( contact_id            NUMBER
+            , member_id             NUMBER
+            , contact_type          NUMBER
+            , first_name            VARCHAR2(60)
+            , middle_name           VARCHAR2(60)
+            , last_name             VARCHAR2(60)
+            , created_by            NUMBER
+            , creation_date         DATE
+            , last_updated_by       NUMBER
+            , last_update_date      DATE
+            , CONSTRUCTOR FUNCTION contact_t
+            ( oname                 VARCHAR2
+            , name                  VARCHAR2
+            , contact_id            NUMBER
+            , member_id             NUMBER
+            , contact_type          NUMBER
+            , first_name            VARCHAR2
+            , middle_name           VARCHAR2
+            , last_name             VARCHAR2
+            , created_by            NUMBER
+            , creation_date         DATE
+            , last_updated_by       NUMBER
+            , last_update_date      DATE) RETURN SELF AS RESULT
+            , OVERRIDING MEMBER FUNCTION get_name  RETURN VARCHAR2
+            , OVERRIDING MEMBER FUNCTION to_string RETURN VARCHAR2)
+            INSTANTIABLE NOT FINAL;
+            /
+
+            CREATE OR REPLACE TYPE BODY contact_t IS
+
+            -- DEFAULT CONSTRUCTOR --
+            CONSTRUCTOR FUNCTION contact_t
+            ( oname                 VARCHAR2
+            , name                  VARCHAR2
+            , contact_id            NUMBER
+            , member_id             NUMBER
+            , contact_type          NUMBER
+            , first_name            VARCHAR2
+            , middle_name           VARCHAR2
+            , last_name             VARCHAR2
+            , created_by            NUMBER
+            , creation_date         DATE
+            , last_updated_by       NUMBER
+            , last_update_date      DATE)   RETURN SELF AS RESULT IS
+            BEGIN
+
+            self.oname              := oname;
+
+            IF name IS NOT NULL AND name IN ('NEW', 'OLD') THEN
+            self.name := name;
+            END IF;
+
+            self.contact_id         := contact_id;
+            self.member_id          := member_id;
+            self.contact_type       := contact_type;
+            self.first_name         := first_name;
+            self.middle_name        := middle_name;
+            self.last_name          := last_name;
+            self.created_by         := created_by;
+            self.creation_date      := creation_date;
+            self.last_updated_by    := last_updated_by;
+            self.last_update_date   := last_update_date;
+
+            RETURN;
+            END;
+
+            -- OVERRIDING get_name --
+            OVERRIDING MEMBER FUNCTION get_name RETURN VARCHAR2 IS
+            BEGIN
+            RETURN (self AS base_t).get_name();
+            END get_name;
+
+            -- OVERRIDING to_string --
+            OVERRIDING MEMBER FUNCTION to_string RETURN VARCHAR2 IS
+            BEGIN
+            RETURN (self AS base_t).to_string()||'.['||self.name||']';
+            END to_string;
+
+            -- END of contact_t
+            END;
+            /
+
+            DESC contact_t;
+
+            INSERT INTO logger
+            ( logger_id, log_text)
+            VALUES
+            ( logger_s.NEXTVAL, item_t(
+            'ITEM_T'
+            , 'NEW'
+            , 100
+            , 'barcode'
+            , 100
+            , 'title'
+            , 'subtitle'
+            , 'rating'
+            , 'RAT'
+            , SYSDATE
+            , 1
+            , SYSDATE
+            , 1
+            , SYSDATE));
+
+            INSERT INTO logger
+            (logger_id, log_text)
+            VALUES
+            ( logger_s.NEXTVAL, contact_t(
+            'CONTACT_T'
+            , 'NEW'
+            , 100
+            , 100
+            , 100
+            , 'JOE'
+            , 'DA'
+            , 'SHMOE'
+            , 1
+            , SYSDATE
+            , 1
+            , SYSDATE));
+
+            COLUMN oname     FORMAT A20
+            COLUMN get_name  FORMAT A20
+            COLUMN to_string FORMAT A20
+            SELECT t.logger_id
+            ,      t.log.oname AS oname
+            ,      t.log.get_name() AS get_name
+            ,      t.log.to_string() AS to_string
+            FROM  (SELECT l.logger_id
+            ,      TREAT(l.log_text AS base_t) AS log
+            FROM   logger l) t
+            WHERE  t.log.oname IN ('CONTACT_T','ITEM_T');
+
+            SPOOL OFF
+
+            EXIT
+            </code></pre></p>
+        </main>
+        <footer>
+            <h2>Work done by Bill Enkey in a database course provided at Brigham Young University, Idaho</h2>
+            <h2>NOT intended to be used or copied.</h2>
+        </footer>
+    </body>
+</html>

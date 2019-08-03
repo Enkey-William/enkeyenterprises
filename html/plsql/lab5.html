@@ -1,0 +1,151 @@
+<!doctype html>
+<html lang = "en-us">
+<head>
+    <meta charset = "utf-8">
+    <title>Oracle PL/SQL examples by Bill Enkey</title>
+    <meta name = "author" content = "Gidgiddoni">
+    <meta name = "viewport" content = "width = device-width">
+    <link href = "../../css/lab.css" type = "text/css" rel = "stylesheet" media = "screen">
+</head>
+    <body>
+        <header><h1>LAB 05</h1></header>
+        <main>
+            <h2>Code</h2>
+            <p>A bit of database maintenance and normalization. The rating listings in the ITEM table were causing a transiatory dependency which is resolved with something of an index table. Data is copied into a table, then copied again into a collection, then used to update a modified ITEM table. Necessary? Not likely; but it shows use of control structures, objects and collections in normalizing a database.<pre><code>
+            /* 
+            ** William Enkey
+            ** CIT 325, McLaughlin
+            ** 2017 FALL
+            ** LAB 05
+            */ 
+
+            SET FEEDBACK ON
+            SET NULL '<Null>'
+            SET PAGESIZE 49999
+            SET LINESIZE 9999
+
+            -- Clean up the DB and then recreate it
+            @/home/student/Data/cit325/oracle/lib/cleanup_oracle.sql
+            @/home/student/Data/cit325/oracle/lib/Oracle12cPLSQLCode/Introduction/create_video_store.sql
+
+            /* 
+            ** Conditionally drop table and sequence, in case it exists
+            ** Though not realistic here, I'm guessing it might be handy in production
+            */ 
+            BEGIN
+              FOR i in (SELECT null FROM user_tables WHERE table_name = 'RATING_AGENCY') LOOP
+                EXECUTE IMMEDIATE 'DROP TABLE rating_agency CASCADE CONSTRAINTS';
+              END LOOP;
+              FOR i IN (SELECT null FROM user_sequences WHERE sequence_name = 'RATING_AGENCY_S') LOOP
+                EXECUTE IMMEDIATE 'DROP SEQUENCE rating_agency_s';
+              END LOOP;
+            END;
+            /
+            SPOOL apply_plsql_lab5.log
+            -- Create table sequence
+            CREATE SEQUENCE rating_agency_s START WITH 1001;
+
+            -- Create table RATING AGENCY
+            CREATE TABLE rating_agency AS
+              SELECT rating_agency_s.NEXTVAL AS rating_agency_id
+              ,      il.item_rating          AS rating
+              ,      il.item_rating_agency   AS rating_agency
+              FROM   (SELECT DISTINCT
+                            i.item_rating
+                      ,     i.item_rating_agency
+                      FROM  item i) il;
+
+            -- See what's there:::::part of TEST CASE
+            SELECT * FROM rating_agency;
+
+            -- Add the RATING AGENCY ID to the item table
+            ALTER TABLE item
+            ADD (rating_agency_id NUMBER);
+
+            -- Check out the item table:::::part of TEST CASE
+            SET NULL ''
+            COLUMN table_name   FORMAT A18
+            COLUMN column_id    FORMAT 9999
+            COLUMN column_name  FORMAT A22
+            COLUMN data_type    FORMAT A12
+            SELECT   table_name
+            ,        column_id
+            ,        column_name
+            ,        CASE
+                       WHEN nullable = 'N' THEN 'NOT NULL'
+                       ELSE ''
+                     END AS nullable
+            ,        CASE
+                       WHEN data_type IN ('CHAR','VARCHAR2','NUMBER') THEN
+                         data_type||'('||data_length||')'
+                       ELSE
+                         data_type
+                     END AS data_type
+            FROM     user_tab_columns
+            WHERE    table_name = 'ITEM'
+            ORDER BY 2;
+
+            -- Create object STRUCT
+            CREATE OR REPLACE
+            TYPE rtng_agncy_obj IS OBJECT
+            ( rating_agency_id NUMBER
+            , rating           VARCHAR2(8)
+            , rating_agency    VARCHAR2(4));
+            /
+
+            -- Create a collection of the object type
+            CREATE OR REPLACE 
+            TYPE rtng_agncy_tab IS TABLE OF rtng_agncy_obj;
+            /
+
+            DECLARE
+
+            -- Cursor!
+            CURSOR c IS
+              SELECT ra.rating_agency_id
+              ,      ra.rating
+              ,      ra.rating_agency
+              FROM   rating_agency ra;
+
+            -- Collection of RATING AGENCY table
+            lv_rtng_tab RTNG_AGNCY_TAB := rtng_agncy_tab();
+
+            BEGIN
+            -- Read the cursor into the local collection
+              FOR i IN c LOOP  
+                lv_rtng_tab.EXTEND;
+                lv_rtng_tab(lv_rtng_tab.COUNT) := rtng_agncy_obj( i.rating_agency_id
+                                                                 , i.rating           
+                                                                 , i.rating_agency);
+              END LOOP;
+
+            -- Update ITEM table based on what is in the local collection
+              FOR i IN 1..lv_rtng_tab.COUNT LOOP
+                UPDATE  item
+                SET     rating_agency_id  = lv_rtng_tab(i).rating_agency_id
+                WHERE   item_rating            = lv_rtng_tab(i).rating
+                AND     item_rating_agency     = lv_rtng_tab(i).rating_agency;
+              END LOOP;
+
+            END;
+            /      
+
+            -- VERIFY PLSQL anonymous block:::::part of TEST CASE
+            SELECT   rating_agency_id
+            ,        COUNT(*)
+            FROM     item
+            WHERE    rating_agency_id IS NOT NULL
+            GROUP BY rating_agency_id
+            ORDER BY 1;
+
+            SPOOL OFF
+
+            EXIT
+            </code></pre></p>
+        </main>
+        <footer>
+            <h2>Work done by Bill Enkey in a database course provided at Brigham Young University, Idaho</h2>
+            <h2>NOT intended to be used or copied.</h2>
+        </footer>
+    </body>
+</html>
