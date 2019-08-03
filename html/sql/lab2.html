@@ -1,0 +1,282 @@
+<!doctype html>
+<html lang = "en-us">
+<head>
+    <meta charset = "utf-8">
+    <title>Oracle SQL examples by Bill Enkey</title>
+    <meta name = "author" content = "Gidgiddoni">
+    <meta name = "viewport" content = "width = device-width">
+    <link href = "../../css/lab.css" type = "text/css" rel = "stylesheet" media = "screen">
+</head>
+    <body>
+        <header><h1>LAB 02</h1></header>
+        <main>
+        <h2>Code</h2>
+            <p>The second lab was a set of basic DDL statements. Although the teacher provided examples and code to be altered, I chose instead to type by hand all CREATE commands. However, at this point in the course I was still very new and copied the queries into my code.<pre><code>
+            -- Run the prior lab script.
+            @/home/student/Data/cit225/oracle/lib/cleanup_oracle.sql
+            @/home/student/Data/cit225/oracle/lib2/create/create_oracle_store2.sql
+ 
+            -- ... insert calls to other code script files here ...
+ 
+            @@system_user_lab.sql
+            @@common_lookup_lab.sql
+            @@member_lab.sql
+            @@contact_lab.sql
+            @@address_lab.sql
+            @@street_address_lab.sql
+            @@telephone_lab.sql
+            @@rental_lab.sql
+            @@item_lab.sql
+            @@rental_item_lab.sql
+
+            SPOOL apply_oracle_lab2.txt
+ 
+            -- ... insert your SQL and PL/SQL statements here ...
+            COLUMN table_name_lab  FORMAT A30 HEADING "Lab Tables"
+            SELECT   a.table_name_base
+            ,        b.table_name_lab
+            FROM    (SELECT   table_name AS table_name_base
+            FROM     user_tables
+            WHERE    table_name IN ('SYSTEM_USER'
+                                ,'COMMON_LOOKUP'
+                                ,'MEMBER'
+                                ,'CONTACT'
+                                ,'ADDRESS'
+                                ,'STREET_ADDRESS'
+                                ,'TELEPHONE'
+                                ,'ITEM'
+                                ,'RENTAL'
+                                ,'RENTAL_ITEM')) a INNER JOIN
+            (SELECT   table_name AS table_name_lab
+            FROM     user_tables
+            WHERE    table_name IN ('SYSTEM_USER_LAB'
+                                ,'COMMON_LOOKUP_LAB'
+                                ,'MEMBER_LAB'
+                                ,'CONTACT_LAB'
+                                ,'ADDRESS_LAB'
+                                ,'STREET_ADDRESS_LAB'
+                                ,'TELEPHONE_LAB'
+                                ,'ITEM_LAB'
+                                ,'RENTAL_LAB'
+                                ,'RENTAL_ITEM_LAB')) b
+                                ON       a.table_name_base = SUBSTR( b.table_name_lab, 1, REGEXP_INSTR(table_name_lab,'_LAB') - 1)
+            ORDER BY CASE
+            WHEN table_name_base LIKE 'SYSTEM_USER%' THEN 0
+            WHEN table_name_base LIKE 'COMMON_LOOKUP%' THEN 1
+            WHEN table_name_base LIKE 'MEMBER%' THEN 2
+            WHEN table_name_base LIKE 'CONTACT%' THEN 3
+            WHEN table_name_base LIKE 'ADDRESS%' THEN 4
+            WHEN table_name_base LIKE 'STREET_ADDRESS%' THEN 5
+            WHEN table_name_base LIKE 'TELEPHONE%' THEN 6
+            WHEN table_name_base LIKE 'ITEM%' THEN 7
+            WHEN table_name_base LIKE 'RENTAL%' AND NOT table_name_base LIKE 'RENTAL_ITEM%' THEN 8
+            WHEN table_name_base LIKE 'RENTAL_ITEM%' THEN 9
+            END;
+
+            COLUMN sequence_name_base FORMAT A30 HEADING "Base Sequences"
+            COLUMN sequence_name_lab  FORMAT A30 HEADING "Lab Sequences"
+            SELECT   a.sequence_name_base
+            ,        b.sequence_name_lab
+            FROM    (SELECT   sequence_name AS sequence_name_base
+            FROM     user_sequences
+            WHERE    sequence_name IN ('SYSTEM_USER_S1'
+                                   ,'COMMON_LOOKUP_S1'
+                                   ,'MEMBER_S1'
+                                   ,'CONTACT_S1'
+                                   ,'ADDRESS_S1'
+                                   ,'STREET_ADDRESS_S1'
+                                   ,'TELEPHONE_S1'
+                                   ,'ITEM_S1'
+                                   ,'RENTAL_S1'
+                                   ,'RENTAL_ITEM_S1')) a INNER JOIN
+            (SELECT   sequence_name AS sequence_name_lab
+            FROM     user_sequences
+            WHERE    sequence_name IN ('SYSTEM_USER_LAB_S1'
+                                   ,'COMMON_LOOKUP_LAB_S1'
+                                   ,'MEMBER_LAB_S1'
+                                   ,'CONTACT_LAB_S1'
+                                   ,'ADDRESS_LAB_S1'
+                                   ,'STREET_ADDRESS_LAB_S1'
+                                   ,'TELEPHONE_LAB_S1'
+                                   ,'ITEM_LAB_S1'
+                                   ,'RENTAL_LAB_S1'
+                                   ,'RENTAL_ITEM_LAB_S1')) b
+            ON       SUBSTR(a.sequence_name_base, 1, REGEXP_INSTR(a.sequence_name_base,'_S1') - 1) =
+            SUBSTR( b.sequence_name_lab, 1, REGEXP_INSTR(b.sequence_name_lab,'_LAB_S1') - 1)
+            ORDER BY CASE
+            WHEN sequence_name_base LIKE 'SYSTEM_USER%' THEN 0
+            WHEN sequence_name_base LIKE 'COMMON_LOOKUP%' THEN 1
+            WHEN sequence_name_base LIKE 'MEMBER%' THEN 2
+            WHEN sequence_name_base LIKE 'CONTACT%' THEN 3
+            WHEN sequence_name_base LIKE 'ADDRESS%' THEN 4
+            WHEN sequence_name_base LIKE 'STREET_ADDRESS%' THEN 5
+            WHEN sequence_name_base LIKE 'TELEPHONE%' THEN 6
+            WHEN sequence_name_base LIKE 'ITEM%' THEN 7
+            WHEN sequence_name_base LIKE 'RENTAL%' AND NOT sequence_name_base LIKE 'RENTAL_ITEM%' THEN 8
+            WHEN sequence_name_base LIKE 'RENTAL_ITEM%' THEN 9
+            END;
+
+            SPOOL OFF
+            </code></pre></p>
+        <p>system_user_lab.sql script<pre><code>
+            -- ------------------------------------------------------------------
+            --  Program Name:   system_user_lab.sql
+            --  Lab Assignment: N/A
+            --  Program Author: Michael McLaughlin
+            --  Creation Date:  17-Jan-2018
+            -- ------------------------------------------------------------------
+            --  Change Log:
+            -- ------------------------------------------------------------------
+            --  Change Date    Change Reason
+            -- -------------  ---------------------------------------------------
+            --  20180125       Testing new layout of course by TA Bill Enkey
+            -- ------------------------------------------------------------------
+            -- This creates the system_user table and system_user_s1 sequences.
+            -- ------------------------------------------------------------------
+
+            -- Open log file.
+            SPOOL system_user_lab.txt
+
+            -- Set SQL*Plus environmnet variables.
+            SET ECHO ON
+            SET FEEDBACK ON
+            SET NULL '<Null>'
+            SET PAGESIZE 999
+            SET SERVEROUTPUT ON SIZE UNLIMITED
+
+            -- ------------------------------------------------------------------
+            --  Create and assign bind variable for table name.
+            -- ------------------------------------------------------------------
+            VARIABLE table_name VARCHAR2(30)
+
+            BEGIN
+                :table_name := UPPER('system_user_lab');
+            END;
+            /
+
+            --  Verify table name.
+            SELECT :table_name FROM dual;
+
+            -- ------------------------------------------------------------------
+            --  Conditionally drop table.
+            -- ------------------------------------------------------------------
+            DECLARE
+              /* Dynamic cursor. */
+              CURSOR c (cv_object_name VARCHAR2) IS
+                SELECT o.object_type
+                ,      o.object_name
+                FROM   user_objects o
+                WHERE  o.object_name LIKE UPPER(cv_object_name||'%');
+            BEGIN
+              FOR i IN c(:table_name) LOOP
+                IF i.object_type = 'SEQUENCE' THEN
+                  EXECUTE IMMEDIATE 'DROP '||i.object_type||' '||i.object_name;
+                ELSIF i.object_type = 'TABLE' THEN
+                  EXECUTE IMMEDIATE 'DROP '||i.object_type||' '||i.object_name||' CASCADE CONSTRAINTS';
+                END IF;
+              END LOOP;
+            END;
+            /
+
+            -- Create table.
+            CREATE TABLE system_user_lab
+            ( system_user_lab_id          NUMBER
+            , system_user_name            VARCHAR2(20) CONSTRAINT nn_system_user_lab_1 NOT NULL
+            , system_user_group_id        NUMBER       CONSTRAINT nn_system_user_lab_2 NOT NULL
+            , system_user_type            NUMBER       CONSTRAINT nn_system_user_lab_3 NOT NULL
+            , first_name                  VARCHAR2(20)
+            , middle_name                 VARCHAR2(20)
+            , last_name                   VARCHAR2(20)
+            , created_by                  NUMBER       CONSTRAINT nn_system_user_lab_4 NOT NULL
+            , creation_date               DATE         CONSTRAINT nn_system_user_lab_5 NOT NULL
+            , last_updated_by             NUMBER       CONSTRAINT nn_system_user_lab_6 NOT NULL
+            , last_update_date            DATE         CONSTRAINT nn_system_user_lab_7 NOT NULL
+            , CONSTRAINT pk_system_user_lab_1 PRIMARY KEY(system_user_lab_id)
+            , CONSTRAINT fk_system_user_lab_1 FOREIGN KEY(created_by) REFERENCES system_user_lab(system_user_lab_id)
+            , CONSTRAINT fk_system_user_lab_2 FOREIGN KEY(last_updated_by) REFERENCES system_user_lab(system_user_lab_id));
+
+            -- Display the table organization.
+            SET NULL ''
+            COLUMN table_name   FORMAT A16
+            COLUMN column_id    FORMAT 9999
+            COLUMN column_name  FORMAT A22
+            COLUMN data_type    FORMAT A12
+            SELECT   table_name
+            ,        column_id
+            ,        column_name
+            ,        CASE
+                       WHEN nullable = 'N' THEN 'NOT NULL'
+                       ELSE ''
+                     END AS nullable
+            ,        CASE
+                       WHEN data_type IN ('CHAR','VARCHAR2','NUMBER') THEN
+                         data_type||'('||data_length||')'
+                       ELSE
+                         data_type
+                     END AS data_type
+            FROM     user_tab_columns
+            WHERE    table_name = 'SYSTEM_USER_LAB'
+            ORDER BY 2;
+
+            -- Display non-unique constraints.
+            COLUMN constraint_name   FORMAT A22
+            COLUMN search_condition  FORMAT A36
+            COLUMN constraint_type   FORMAT A1
+            SELECT   uc.constraint_name
+            ,        uc.search_condition
+            ,        uc.constraint_type
+            FROM     user_constraints uc INNER JOIN user_cons_columns ucc
+            ON       uc.table_name = ucc.table_name
+            AND      uc.constraint_name = ucc.constraint_name
+            WHERE    uc.table_name = UPPER('system_user_lab')
+            AND      uc.constraint_type = UPPER('c')
+            ORDER BY uc.constraint_name;
+
+            -- Display foreign key constraints.
+            COL constraint_source FORMAT A38 HEADING "Constraint Name:| Table.Column"
+            COL references_column FORMAT A40 HEADING "References:| Table.Column"
+            SELECT   uc.constraint_name||CHR(10)
+            ||      '('||ucc1.table_name||'.'||ucc1.column_name||')' constraint_source
+            ,       'REFERENCES'||CHR(10)
+            ||      '('||ucc2.table_name||'.'||ucc2.column_name||')' references_column
+            FROM     user_constraints uc
+            ,        user_cons_columns ucc1
+            ,        user_cons_columns ucc2
+            WHERE    uc.constraint_name = ucc1.constraint_name
+            AND      uc.r_constraint_name = ucc2.constraint_name
+            AND      ucc1.position = ucc2.position -- Correction for multiple column primary keys.
+            AND      uc.constraint_type = 'R'
+            AND      ucc1.table_name = 'SYSTEM_USER_LAB'
+            ORDER BY ucc1.table_name
+            ,        uc.constraint_name;
+
+            -- Create unique index.
+            CREATE UNIQUE INDEX uq_system_user_lab_1
+              ON system_user_lab (system_user_name);
+
+            -- Display unique indexes.
+            COLUMN index_name FORMAT A20 HEADING "Index Name"
+            SELECT   index_name
+            FROM     user_indexes
+            WHERE    TABLE_NAME = UPPER('system_user_lab');
+
+            -- Create sequence.
+            CREATE SEQUENCE system_user_lab_s1 START WITH 1001;
+
+            -- Display sequence.
+            COLUMN sequence_name FORMAT A20 HEADING "Sequence Name"
+            SELECT   sequence_name
+            FROM     user_sequences
+            WHERE    sequence_name = UPPER('system_user_lab_s1');
+
+            -- Close the log file.
+            SPOOL OFF
+        </code></pre></p>
+        <p>This should be sufficient to show most of what occured in this lab.</p>
+        </main>
+            <footer>
+        <h2>Work done by Bill Enkey in a database course provided at Brigham Young University, Idaho</h2>
+            <h2>NOT intended to be used or copied.</h2>
+    </footer>
+    </body>
+</html>

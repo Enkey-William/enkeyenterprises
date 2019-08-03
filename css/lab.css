@@ -13,13 +13,11 @@
 body
 {
     background-color: skyblue;
-    text-align: center;
     font-size: 1.5em;
 }
 
 h1
 {
-    text-align: center;
     text-decoration: underline;
     font-size: 2em;
     margin: 20px;
@@ -42,15 +40,12 @@ ul
     flex-direction: column;
 }
 
-.introFlex 
+.lablist
 {
-    display: flex;
-    flex-direction: column;
-    text-align: justify;
-    margin: 40px;
+    margin-left: 40px;
 }
 
 p
 {
-    padding-bottom: 10px;
+    margin: 40px;
 }

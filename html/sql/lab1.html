@@ -1,0 +1,42 @@
+<!doctype html>
+<html lang = "en-us">
+<head>
+    <meta charset = "utf-8">
+    <title>Oracle SQL examples by Bill Enkey</title>
+    <meta name = "author" content = "Gidgiddoni">
+    <meta name = "viewport" content = "width = device-width">
+    <link href = "../../css/lab.css" type = "text/css" rel = "stylesheet" media = "screen">
+</head>
+    <body>
+        <header><h1>LAB 01</h1></header>
+        <main>
+        <h2>The first lab was a test environment to make sure everything works.</h2>
+            <p><pre><code>
+            -- ----------------------------------------------------------------------
+            -- Instructions:
+            -- ----------------------------------------------------------------------
+            -- The two scripts contain spooling commands, which is why there
+            -- isn't a spooling command in this script. When you run this file
+            -- you first connect to the Oracle database with this syntax:
+            --
+            --   sqlplus student/student@xe
+            --
+            -- Then, you call this script with the following syntax:
+            --
+            --   sql> @apply_oracle_lab1.sql
+            --
+            -- ----------------------------------------------------------------------
+
+            -- Call the setup scripts.
+            @/home/student/Data/cit225/oracle/lib/cleanup_oracle.sql
+            @/home/student/Data/cit225/oracle/lib/create_oracle_store.sql
+            @/home/student/Data/cit225/oracle/lib/seed_oracle_store.sql
+            </code></pre></p>
+        </main>
+            <footer>
+        <h2>Work done by Bill Enkey in a database course provided at Brigham Young University, Idaho</h2>
+            <h2>NOT intended to be used or copied.</h2>
+    </footer>
+    </body>
+</html>
+

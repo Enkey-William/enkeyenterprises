@@ -1,0 +1,56 @@
+<!doctype html>
+<html lang = "en-us">
+<head>
+    <meta charset = "utf-8">
+    <title>Oracle SQL examples by Bill Enkey</title>
+    <meta name = "author" content = "Gidgiddoni">
+    <meta name = "viewport" content = "width = device-width">
+    <link href = "../../css/lab.css" type = "text/css" rel = "stylesheet" media = "screen">
+</head>
+    <body>
+        <header><h1>LAB 05</h1></header>
+        <main>
+            <h2>Code</h2>
+            <p>This lab was the beginning of building queries. Here I will show just some of the created queries. You will notice the use of different syntax &#10088;SQL 89, SQL 92, et cetera &#10089;<pre><code>
+            -- A
+            SELECT member_id, contact_id
+            FROM   member JOIN contact
+            USING  (member_id);
+
+            -- B
+            SELECT m.member_id, c.contact_id
+            FROM   member m, contact c
+            WHERE  m.member_id = c.member_id;
+            
+            ... 
+            
+            -- A
+            SELECT c.contact_id, su.system_user_id AS system_user_pk
+            FROM   contact c INNER JOIN system_user su 
+               ON  c.created_by = su.system_user_id;
+               
+            ...
+            
+            -- B
+
+            SELECT su1.system_user_id, su1.created_by, su2.system_user_id AS system_user_pk
+            FROM   system_user su1 INNER JOIN system_user su2
+               ON  su1.last_updated_by = su2.system_user_id;
+               
+            ...
+            
+            SELECT 	   r.rental_id  AS RENTAL_ID
+            ,          ri.rental_id AS RENTAL_ID_RI
+            ,          ri.item_id   AS ITEM_ID_RI
+            ,          i.item_id    AS ITEM_ID
+            FROM	   rental r INNER JOIN rental_item ri
+               ON	   ri.rental_id = r.rental_id INNER JOIN item i
+               ON	   i.item_id = ri.item_id;
+            </code></pre></p>
+        </main>
+        <footer>
+            <h2>Work done by Bill Enkey in a database course provided at Brigham Young University, Idaho</h2>
+            <h2>NOT intended to be used or copied.</h2>
+        </footer>
+    </body>
+</html>
