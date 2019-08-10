@@ -1,0 +1,52 @@
+<!doctype html>
+<html lang = "en-us">
+<head>
+    <meta charset = "utf-8">
+    <title>TSQL examples by Bill Enkey</title>
+    <meta name = "author" content = "Gidgiddoni">
+    <meta name = "viewport" content = "width = device-width">
+    <link href = "../../css/lab.css" type = "text/css" rel = "stylesheet" media = "screen">
+</head>
+    <body>
+        <header><h1>Microsoft SQL examples by Bill Enkey</h1></header>
+        <main>
+            <h2>Code</h2>
+            <p>Below are some scripts for backup and recovery purposes. No database is complete without a recovery plan!<br>Automating something like this can be a bit tricky. I'd say the simplest approach would be to create a library in PowerShell and cmdlets that can approach this task for you. It's quite involved, and not shown here.<pre><code>
+            /*
+            ** This script will do a full backup of the student database
+            */
+
+            USE MASTER;
+            ALTER DATABASE studentdb SET RECOVERY FULL;
+            GO
+            -- Back up the AdventureWorks2012 database to new media set (backup set 1).
+            BACKUP DATABASE studentdb
+              TO DISK = 'E:\backup_test\studentdb.bak'
+              WITH FORMAT;
+            GO
+            -- Create a routine log backup (backup set 2).
+            BACKUP LOG studentdb TO DISK = 'E:\backup_test\studentdbLOG.bak';
+            GO
+            
+            /*
+            ** This script will recover the database from the backup
+            */
+
+            RESTORE DATABASE studentdb
+            FROM DISK = 'E:\backup_test\studentdb.bak'
+            WITH NORECOVERY, REPLACE;
+
+            RESTORE LOG studentdb
+            FROM DISK = 'E:\backup_test\studentdbLOG.bak'
+            WITH NORECOVERY, REPLACE;
+
+            RESTORE DATABASE studentdb
+            WITH RECOVERY, REPLACE;
+            </code></pre></p>
+        </main>
+        <footer>
+            <h2>Work done by Bill Enkey in a database course provided at Brigham Young University, Idaho</h2>
+            <h2>NOT intended to be used or copied.</h2>
+        </footer>
+    </body>
+</html>

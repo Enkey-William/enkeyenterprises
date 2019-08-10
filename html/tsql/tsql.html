@@ -1,0 +1,72 @@
+<!doctype html>
+<html lang = "en-us">
+<head>
+    <meta charset = "utf-8">
+    <title>TSQL examples by Bill Enkey</title>
+    <meta name = "author" content = "Gidgiddoni">
+    <meta name = "viewport" content = "width = device-width">
+    <link href = "../../css/lab.css" type = "text/css" rel = "stylesheet" media = "screen">
+</head>
+    <body>
+        <header><h1>TSQL examples by Bill Enkey</h1></header>
+        <main>
+            <h2>TSQL Documents</h2>
+            <p>To understand how to use TSQL, I used two refrence books to rewrite the Oracle SQL code into TSQL code. The books I used are the exam reference material provided by Microsoft; "Querying Data with Transact-SQL" by Itzik Ben-Gan and "Developing SQL Databases" by Louis Davidson and Stacia Varga. The books help to prepare for exams 70-761 and 70-762, respectively.</p>
+            <p>Perhaps of note also is Microsofts transition from using the <b>sys</b> or <b>system</b> tables as database objects to using <b>INFORMATION_SCHEMA</b> objects. In the cleanup script, I needed to use the <b>sys</b> approach, but as much as possible I tried to use the newer approach to which Microsoft is transitioning.</p>
+            <p>Below is a list of some of the code used to recreate the database. Generally I keep my code in a folder called <q>data</q>, with subfolders <q>create</q>, <q>preseed</q>, <q>seed</q>, and <q>utility</q>.</p>
+            <nav class="lablist"><ul>
+            <li><a href="create.html" target="_blank">CREATE script</a></li>
+            <li><a href="preseed.html" target="_blank">Preseed the database</a></li>
+            <li><a href="seed.html" target="_blank">Seed the database with faux data</a></li>
+            <li><a href="utility.html" target="_blank">Backup and recovery</a></li>
+            </ul></nav>
+            <h2>Example Code</h2>
+            <p>In 1999 the <b>WITH</b> clause was added to the list of tools that can be used by database coders. Though Microsoft TSQL does not support it as generally as other database types, it would be supported in the following example &#10088;used to cleanup the database&#10089;. Worked out well enough.<pre><code>
+                DECLARE @obj_id   INT = 0;
+                DECLARE @name     VARCHAR(20) = '';
+                DECLARE @type     VARCHAR(5) = '';
+                DECLARE @p_obj_id INT = 0;
+                DECLARE @schem_id INT = 0;
+                DECLARE @sql      NVARCHAR(MAX);
+
+                ;WITH x AS (SELECT TOP(1) object_id
+                                 , name
+                                 , type
+                                 , parent_object_id
+                                 , schema_id
+                            FROM   sys.objects
+                            WHERE  [schema_id] = SCHEMA_ID('studentdb')
+                            ORDER BY type)
+                SELECT @obj_id += object_id
+                     , @name += name
+                     , @type += type
+                     , @p_obj_id += parent_object_id
+                     , @schem_id += schema_id
+                FROM x;
+
+                WHILE @type IS NOT NULL
+                  BEGIN
+                        IF @type = 'F'
+                          SET @sql = N'ALTER TABLE ' + (SELECT name FROM sys.objects WHERE [object_id] = @p_obj_id) +
+                                     N' DROP CONSTRAINT ' + (SELECT name FROM sys.objects WHERE [object_id] = @obj_id);
+                          EXEC sp_executesql @sql;
+                        IF @type = 'PK'
+                          SET @sql = N'ALTER TABLE ' + (SELECT name FROM sys.objects WHERE [object_id] = @p_obj_id) +
+                                   N' DROP CONSTRAINT ' + (SELECT name FROM sys.objects WHERE [object_id] = @obj_id);
+                          EXEC sp_executesql @sql;
+                        IF @type = 'P'  SET @sql = 'DROP PROCEDURE studentdb.' + @name;
+                                        EXEC sp_executesql @sql;
+                        IF @type = 'V'  SET @sql = 'DROP VIEW studentdb.' + @name;
+                                        EXEC sp_executesql @sql;
+                        IF @type = 'U'  SET @sql = 'DROP TABLE studentdb.' + @name;
+                                        EXEC sp_executesql @sql;
+                                        BREAK
+                  END
+            </code></pre></p>
+        </main>
+        <footer>
+            <h2>Work done by Bill Enkey in a database course provided at Brigham Young University, Idaho</h2>
+            <h2>NOT intended to be used or copied.</h2>
+        </footer>
+    </body>
+</html>

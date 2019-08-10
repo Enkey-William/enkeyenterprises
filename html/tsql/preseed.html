@@ -1,0 +1,517 @@
+<!doctype html>
+<html lang = "en-us">
+<head>
+    <meta charset = "utf-8">
+    <title>TSQL examples by Bill Enkey</title>
+    <meta name = "author" content = "Gidgiddoni">
+    <meta name = "viewport" content = "width = device-width">
+    <link href = "../../css/lab.css" type = "text/css" rel = "stylesheet" media = "screen">
+</head>
+    <body>
+        <header><h1>Microsoft SQL examples by Bill Enkey</h1></header>
+        <main>
+            <h2>Code</h2>
+            <p>Preseeding a database is important; once regular users begin to use the database they expect everything to work straight up. They do not want to have to go through a process of certain order data to get going. The programmer/designer should prepare the database for use prior to users logging on or accessing the database.<pre><code>
+            -- STEP 01: disable foreign key constraints from database_user table based on common_lookup --
+            ALTER TABLE studentdb.database_user
+            NOCHECK CONSTRAINT fk_db_user_03;
+
+            ALTER TABLE studentdb.database_user
+            NOCHECK CONSTRAINT fk_db_user_04;
+
+            -- Verify constraint status --
+            SELECT name = CONVERT(VARCHAR(20), name)
+                 , type = CONVERT(VARCHAR(5), type)
+                 , type_desc = CONVERT(VARCHAR(20), type_desc)
+                 , key_index_id = CONVERT(INT, key_index_id)
+                 , CASE WHEN is_disabled = 0 THEN 'NO'
+                        WHEN is_disabled = 1 THEN 'YES'
+                        END AS disabled
+            FROM   sys.foreign_keys
+            WHERE  [parent_object_id] = OBJECT_ID('studentdb.database_user');
+
+            -- STEP 02: allow 'system_user_id' and 'system_user_group_id' to be NULLABLE --
+            ALTER TABLE studentdb.database_user
+            ALTER COLUMN db_user_group_id INT NULL;
+
+            ALTER TABLE studentdb.database_user
+            ALTER COLUMN db_user_type INT NULL;
+
+            -- VERIFY column changes --
+            SELECT TABLE_NAME = CONVERT(VARCHAR(20), table_name)
+                 , COLUMN_NAME = CONVERT(VARCHAR(20), COLUMN_NAME)
+                 , IS_NULLABLE
+            FROM   INFORMATION_SCHEMA.COLUMNS
+            WHERE  TABLE_NAME = 'database_user'
+            AND    IS_NULLABLE = 'YES';
+
+            -- STEP 03: Insert a user into the database user table; this is only a partial insert--
+            INSERT INTO studentdb.database_user
+            (db_user_name,created_by,creation_date,last_updated_by,last_update_date)
+            VALUES ('SYSADMIN',1,GETDATE(),1,GETDATE());
+
+            -- VERIFY partial insert --
+            SELECT database_user_id = CONVERT(INT, database_user_id)
+                 , db_user_name = CONVERT(VARCHAR(10), db_user_name)
+                 , db_user_group_id = CONVERT(INT, db_user_group_id)
+                 , db_user_type = CONVERT(INT, db_user_type)
+                 , first_name = CONVERT(VARCHAR(10), first_name)
+                 , middle_name = CONVERT(VARCHAR(10), middle_name)
+                 , last_name = CONVERT(VARCHAR(10), last_name)
+            FROM studentdb.database_user;
+
+            -- STEP 04: Disable foreign keys for common_lookup table referring to database_user --
+            ALTER TABLE studentdb.common_lookup
+            NOCHECK CONSTRAINT fk_clookup_01;
+
+            ALTER TABLE studentdb.common_lookup
+            NOCHECK CONSTRAINT fk_clookup_02;
+
+            -- Verify constraint changes --
+            SELECT name = CONVERT(VARCHAR(20), name)
+                 , type = CONVERT(VARCHAR(5), type)
+                 , type_desc = CONVERT(VARCHAR(20), type_desc)
+                 , key_index_id = CONVERT(INT, key_index_id)
+                 , CASE WHEN is_disabled = 0 THEN 'NO'
+                        WHEN is_disabled = 1 THEN 'YES'
+                        END AS disabled
+            FROM   sys.foreign_keys
+            WHERE  [parent_object_id] = OBJECT_ID('studentdb.common_lookup');
+
+            -- STEP 05: INSERT necessary preseed rows into common_lookup --
+            INSERT INTO studentdb.common_lookup
+            ( common_lookup_context
+            , common_lookup_type
+            , common_lookup_meaning
+            , created_by
+            , creation_date
+            , last_updated_by
+            , last_update_date )
+            VALUES ( 'DATABASE_USER'                -- common_lookup_context
+            ,'SYSTEM_ADMIN'               -- common_lookup_type
+            ,'System Administrator'       -- common_lookup_meaning
+            , 1                           -- created_by
+            , GETDATE()                     -- creation_date
+            , 1                           -- last_updated_by
+            , GETDATE()                     -- last_update_date
+            );
+
+            INSERT INTO studentdb.common_lookup
+            ( common_lookup_context
+            , common_lookup_type
+            , common_lookup_meaning
+            , created_by
+            , creation_date
+            , last_updated_by
+            , last_update_date )
+            VALUES ( 'DATABASE_USER'
+              , 'DBA'
+              , 'Database Administrator'
+              , 1, GETDATE(), 1, GETDATE());
+
+            INSERT INTO studentdb.common_lookup
+              ( common_lookup_context
+              , common_lookup_type
+              , common_lookup_meaning
+              , created_by
+              , creation_date
+              , last_updated_by
+              , last_update_date )
+              VALUES ( 'DATABASE_USER'
+                , 'SYSTEM_GROUP'
+                , 'System Group'
+                , 1, GETDATE(), 1, GETDATE());
+
+            INSERT INTO studentdb.common_lookup
+                ( common_lookup_context
+                , common_lookup_type
+                , common_lookup_meaning
+                , created_by
+                , creation_date
+                , last_updated_by
+                , last_update_date )
+                VALUES ( 'DATABASE_USER'
+                  , 'COST_CENTER'
+                  , 'Cost Center'
+                  , 1, GETDATE(), 1, GETDATE());
+
+            INSERT INTO studentdb.common_lookup
+            ( common_lookup_context
+            , common_lookup_type
+            , common_lookup_meaning
+            , created_by
+            , creation_date
+            , last_updated_by
+            , last_update_date)
+            VALUES
+            ( 'DATABASE_USER'
+            , 'INDIVIDUAL'
+            , 'Individual'
+            , 1, GETDATE(), 1, GETDATE());
+
+            INSERT INTO studentdb.common_lookup
+            ( common_lookup_context
+            , common_lookup_type
+            , common_lookup_meaning
+            , created_by
+            , creation_date
+            , last_updated_by
+            , last_update_date)
+            VALUES
+            ( 'CONTACT'
+            , 'EMPLOYEE'
+            , 'Employee'
+            , 1, GETDATE(), 1, GETDATE());
+
+            INSERT INTO studentdb.common_lookup
+            ( common_lookup_context
+            , common_lookup_type
+            , common_lookup_meaning
+            , created_by
+            , creation_date
+            , last_updated_by
+            , last_update_date)
+            VALUES
+            ( 'CONTACT'
+            , 'CUSTOMER'
+            , 'Customer'
+            , 1, GETDATE(), 1, GETDATE());
+
+            INSERT INTO studentdb.common_lookup
+            ( common_lookup_context
+            , common_lookup_type
+            , common_lookup_meaning
+            , created_by
+            , creation_date
+            , last_updated_by
+            , last_update_date)
+            VALUES
+            ( 'MEMBER'
+            , 'INDIVIDUAL'
+            , 'Individual Membership'
+            , 1, GETDATE(), 1, GETDATE());
+
+            INSERT INTO studentdb.common_lookup
+            ( common_lookup_context
+            , common_lookup_type
+            , common_lookup_meaning
+            , created_by
+            , creation_date
+            , last_updated_by
+            , last_update_date)
+            VALUES
+            ( 'MEMBER'
+            , 'GROUP'
+            , 'Group Membership'
+            , 1, GETDATE(), 1, GETDATE());
+
+            INSERT INTO studentdb.common_lookup
+            ( common_lookup_context
+            , common_lookup_type
+            , common_lookup_meaning
+            , created_by
+            , creation_date
+            , last_updated_by
+            , last_update_date)
+            VALUES
+            ( 'MEMBER'
+            , 'DISCOVER_CARD'
+            , 'Discover Card'
+            , 1, GETDATE(), 1, GETDATE());
+
+            INSERT INTO studentdb.common_lookup
+            ( common_lookup_context
+            , common_lookup_type
+            , common_lookup_meaning
+            , created_by
+            , creation_date
+            , last_updated_by
+            , last_update_date)
+            VALUES
+            ( 'MEMBER'
+            , 'MASTER_CARD'
+            , 'Master Card'
+            , 1, GETDATE(), 1, GETDATE());
+
+            INSERT INTO studentdb.common_lookup
+            ( common_lookup_context
+            , common_lookup_type
+            , common_lookup_meaning
+            , created_by
+            , creation_date
+            , last_updated_by
+            , last_update_date)
+            VALUES
+            ( 'MEMBER'
+            , 'VISA_CARD'
+            , 'Visa Card'
+            , 1, GETDATE(), 1, GETDATE());
+
+            INSERT INTO studentdb.common_lookup
+            ( common_lookup_context
+            , common_lookup_type
+            , common_lookup_meaning
+            , created_by
+            , creation_date
+            , last_updated_by
+            , last_update_date)
+            VALUES
+            ( 'MULTIPLE'
+            , 'HOME'
+            , 'Home'
+            , 1, GETDATE(), 1, GETDATE());
+
+            INSERT INTO studentdb.common_lookup
+            ( common_lookup_context
+            , common_lookup_type
+            , common_lookup_meaning
+            , created_by
+            , creation_date
+            , last_updated_by
+            , last_update_date)
+            VALUES
+            ( 'MULTIPLE'
+            , 'WORK'
+            , 'Work'
+            , 1, GETDATE(), 1, GETDATE());
+
+            INSERT INTO studentdb.common_lookup
+            ( common_lookup_context
+            , common_lookup_type
+            , common_lookup_meaning
+            , created_by
+            , creation_date
+            , last_updated_by
+            , last_update_date)
+            VALUES
+            ( 'ITEM'
+            , 'DVD_FULL_SCREEN'
+            , 'DVD: Full Screen'
+            , 1, GETDATE(), 1, GETDATE());
+
+            INSERT INTO studentdb.common_lookup
+            ( common_lookup_context
+            , common_lookup_type
+            , common_lookup_meaning
+            , created_by
+            , creation_date
+            , last_updated_by
+            , last_update_date)
+            VALUES
+            ( 'ITEM'
+            , 'DVD_WIDE_SCREEN'
+            , 'DVD: Wide Screen'
+            , 1, GETDATE(), 1, GETDATE());
+
+            INSERT INTO studentdb.common_lookup
+            ( common_lookup_context
+            , common_lookup_type
+            , common_lookup_meaning
+            , created_by
+            , creation_date
+            , last_updated_by
+            , last_update_date)
+            VALUES
+            ( 'ITEM'
+            , 'NINTENDO_GAMECUBE'
+            , 'Nintendo Gamecube'
+            , 1, GETDATE(), 1, GETDATE());
+
+            INSERT INTO studentdb.common_lookup
+            ( common_lookup_context
+            , common_lookup_type
+            , common_lookup_meaning
+            , created_by
+            , creation_date
+            , last_updated_by
+            , last_update_date)
+            VALUES
+            ( 'ITEM'
+            , 'PLAYSTATION2'
+            , 'Playstation2'
+            , 1, GETDATE(), 1, GETDATE());
+
+            INSERT INTO studentdb.common_lookup
+            ( common_lookup_context
+            , common_lookup_type
+            , common_lookup_meaning
+            , created_by
+            , creation_date
+            , last_updated_by
+            , last_update_date)
+            VALUES
+            ( 'ITEM'
+            , 'XBOX'
+            , 'XBOX'
+            , 1, GETDATE(), 1, GETDATE());
+
+            INSERT INTO studentdb.common_lookup
+            ( common_lookup_context
+            , common_lookup_type
+            , common_lookup_meaning
+            , created_by
+            , creation_date
+            , last_updated_by
+            , last_update_date)
+            VALUES
+            ( 'ITEM'
+            , 'BLU-RAY'
+            , 'Blu-ray'
+            , 1, GETDATE(), 1, GETDATE());
+
+            -- VERIFY inserts --
+            SELECT common_lookup_id = CONVERT(INT, common_lookup_id)
+                 , common_lookup_context = CONVERT(VARCHAR(15), common_lookup_context)
+                 , common_lookup_type = CONVERT(VARCHAR(15), common_lookup_type)
+                 , common_lookup_meaning = CONVERT(VARCHAR(24), common_lookup_meaning)
+            FROM studentdb.common_lookup;
+
+            -- STEP 06: Write two queries to practice getting update values for the database_user table --
+            SELECT common_lookup_id
+            FROM   studentdb.common_lookup
+            WHERE  common_lookup_context = 'DATABASE_USER'
+            AND    common_lookup_type = 'SYSTEM_GROUP';
+
+            SELECT common_lookup_id
+            FROM   studentdb.common_lookup
+            WHERE  common_lookup_context = 'DATABASE_USER'
+            AND    common_lookup_type = 'SYSTEM_ADMIN';
+
+            -- STEP 07: update the db_user_group_id and db_user_type columns in the database_user table --
+            UPDATE studentdb.database_user
+            SET    db_user_group_id = (SELECT common_lookup_id
+            FROM   studentdb.common_lookup
+            WHERE  common_lookup_context = 'DATABASE_USER'
+            AND    common_lookup_type = 'SYSTEM_GROUP');
+
+            UPDATE studentdb.database_user
+            SET    db_user_type = (SELECT common_lookup_id
+            FROM   studentdb.common_lookup
+            WHERE  common_lookup_context = 'DATABASE_USER'
+            AND    common_lookup_type = 'SYSTEM_ADMIN');
+
+            -- Verify updates --
+            SELECT database_user_id = CONVERT(INT, database_user_id)
+                 , db_user_name = CONVERT(VARCHAR(10), db_user_name)
+                 , db_user_group_id = CONVERT(INT, db_user_group_id)
+                 , db_user_type = CONVERT(INT, db_user_type)
+                 , first_name = CONVERT(VARCHAR(10), first_name)
+                 , middle_name = CONVERT(VARCHAR(10), middle_name)
+                 , last_name = CONVERT(VARCHAR(10), last_name)
+            FROM studentdb.database_user;
+
+            -- Re-enable database_user foreign keys --
+            ALTER TABLE studentdb.database_user
+            CHECK CONSTRAINT fk_db_user_03;
+
+            ALTER TABLE studentdb.database_user
+            CHECK CONSTRAINT fk_db_user_04;
+
+            -- Verify constraint status --
+            SELECT name = CONVERT(VARCHAR(20), name)
+                 , type = CONVERT(VARCHAR(5), type)
+                 , type_desc = CONVERT(VARCHAR(20), type_desc)
+                 , key_index_id = CONVERT(INT, key_index_id)
+                 , CASE WHEN is_disabled = 0 THEN 'NO'
+                        WHEN is_disabled = 1 THEN 'YES'
+                        END AS disabled
+            FROM   sys.foreign_keys
+            WHERE  [parent_object_id] = OBJECT_ID('studentdb.database_user');
+
+            -- Re-enable common_lookup foreign keys --
+            ALTER TABLE studentdb.common_lookup
+            CHECK CONSTRAINT fk_clookup_01;
+
+            ALTER TABLE studentdb.common_lookup
+            CHECK CONSTRAINT fk_clookup_02;
+
+            -- Verify constraint changes --
+            SELECT name = CONVERT(VARCHAR(20), name)
+                 , type = CONVERT(VARCHAR(5), type)
+                 , type_desc = CONVERT(VARCHAR(20), type_desc)
+                 , key_index_id = CONVERT(INT, key_index_id)
+                 , CASE WHEN is_disabled = 0 THEN 'NO'
+                        WHEN is_disabled = 1 THEN 'YES'
+                        END AS disabled
+            FROM   sys.foreign_keys
+            WHERE  [parent_object_id] = OBJECT_ID('studentdb.common_lookup');
+
+            -- Re-enable not null constraints on database_user table --
+            ALTER TABLE studentdb.database_user
+            ALTER COLUMN db_user_group_id INT NOT NULL;
+
+            ALTER TABLE studentdb.database_user
+            ALTER COLUMN db_user_type INT NOT NULL;
+
+            -- VERIFY column changes --
+            SELECT TABLE_NAME = CONVERT(VARCHAR(20), table_name)
+                 , COLUMN_NAME = CONVERT(VARCHAR(20), COLUMN_NAME)
+                 , IS_NULLABLE
+            FROM   INFORMATION_SCHEMA.COLUMNS
+            WHERE  TABLE_NAME = 'database_user'
+            AND    IS_NULLABLE = 'NO';
+
+            -- INSERT two new users into the db user table --
+            INSERT INTO studentdb.database_user
+            VALUES
+            ( 'DBA1'
+            , (SELECT common_lookup_id
+               FROM   studentdb.common_lookup
+               WHERE  common_lookup_context = 'DATABASE_USER'
+               AND    common_lookup_type = 'SYSTEM_GROUP')
+            , (SELECT common_lookup_id
+               FROM   studentdb.common_lookup
+               WHERE  common_lookup_context = 'DATABASE_USER'
+               AND    common_lookup_type = 'SYSTEM_ADMIN')
+            , 'SUPER'
+            , 'AWESOME'
+            , 'DUDE'
+            , (SELECT database_user_id
+               FROM   studentdb.database_user
+               WHERE  db_user_name = 'SYSADMIN')
+            , GETDATE()
+            , (SELECT database_user_id
+               FROM   studentdb.database_user
+               WHERE  db_user_name = 'SYSADMIN')
+            , GETDATE());
+
+            INSERT INTO studentdb.database_user
+            VALUES
+            ( 'DBA2'
+            , (SELECT common_lookup_id
+               FROM   studentdb.common_lookup
+               WHERE  common_lookup_context = 'DATABASE_USER'
+               AND    common_lookup_type = 'SYSTEM_GROUP')
+            , (SELECT common_lookup_id
+               FROM   studentdb.common_lookup
+               WHERE  common_lookup_context = 'DATABASE_USER'
+               AND    common_lookup_type = 'SYSTEM_ADMIN')
+            , 'SUPER'
+            , 'AWESOME'
+            , 'DUDETTE'
+            , (SELECT database_user_id
+               FROM   studentdb.database_user
+               WHERE  db_user_name = 'SYSADMIN')
+            , GETDATE()
+            , (SELECT database_user_id
+               FROM   studentdb.database_user
+               WHERE  db_user_name = 'SYSADMIN')
+            , GETDATE());
+
+            -- VERIFY inserts --
+            SELECT database_user_id = CONVERT(INT, database_user_id)
+                 , db_user_name = CONVERT(VARCHAR(10), db_user_name)
+                 , db_user_group_id = CONVERT(INT, db_user_group_id)
+                 , db_user_type = CONVERT(INT, db_user_type)
+                 , first_name = CONVERT(VARCHAR(10), first_name)
+                 , middle_name = CONVERT(VARCHAR(10), middle_name)
+                 , last_name = CONVERT(VARCHAR(10), last_name)
+            FROM studentdb.database_user;
+            </code></pre></p>
+        </main>
+        <footer>
+            <h2>Work done by Bill Enkey in a database course provided at Brigham Young University, Idaho</h2>
+            <h2>NOT intended to be used or copied.</h2>
+        </footer>
+    </body>
+</html>

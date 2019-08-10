@@ -1,0 +1,551 @@
+<!doctype html>
+<html lang = "en-us">
+<head>
+    <meta charset = "utf-8">
+    <title>TSQL examples by Bill Enkey</title>
+    <meta name = "author" content = "Gidgiddoni">
+    <meta name = "viewport" content = "width = device-width">
+    <link href = "../../css/lab.css" type = "text/css" rel = "stylesheet" media = "screen">
+</head>
+    <body>
+        <header><h1>Microsoft SQL examples by Bill Enkey</h1></header>
+        <main>
+            <h2>Code</h2>
+            <p>This is the create script. Oracle may separate it's SQL from it's procedural equivalent &#10088;PL/SQL&#10089;, but Transact-SQL does not; it doesn't really matter in a script either way. <br>Another notable difference is sequences. In Microsoft's SQL, there is no manual control of the identity column; it is automated.<pre><code>
+            USE studentdb;
+
+            -- Create a session variable to hold a command list --
+            SELECT 'Create a session variable.' AS "Statement";
+            DECLARE @sql NVARCHAR(MAX) = N'';
+
+            -- Generate command list to drop foreign key constraints --
+            SELECT 'Generate dynamic SQL statements.' AS "Statement";
+            ;WITH x AS
+            (SELECT N'Alter TAble ' + OBJECT_SCHEMA_NAME(parent_object_id) + N'.' +
+                                      OBJECT_NAME(parent_object_id) + N' ' +
+                                      N'DROP CONSTRAINT ' + name + N';' AS sqlstmt
+             FROM sys.foreign_keys)
+             SELECT @sql += sqlstmt FROM x;
+
+             -- Call dynamically generated statements --
+             SELECT 'Execute dynamic SQL statements.' AS "Statement";
+             EXEC sp_executesql @sql;
+
+             /*
+            ** CREATE the DATABASE_USER TABLE with its constraints (primary key, foreign keys, not nulls, and any indices)
+            */
+
+             -- Condidtionally drop the table. --
+            SELECT 'Conditionally drop studentdb.database_user table.' AS "Statement";
+             IF OBJECT_ID('studentdb.database_user', 'U') IS NOT NULL
+               DROP TABLE studentdb.database_user;
+
+               -- Create db_user table --
+            CREATE TABLE studentdb.studentdb.database_user
+            ( database_user_id            INT         NOT NULL  IDENTITY(1,1) CONSTRAINT database_user_pk PRIMARY KEY
+            , db_user_name            VARCHAR(20) CONSTRAINT nn_database_user_1 NOT NULL
+            , db_user_group_id        INT         CONSTRAINT nn_database_user_2 NOT NULL
+            , db_user_type            INT         CONSTRAINT nn_database_user_3 NOT NULL
+            , first_name                  VARCHAR(20)
+            , middle_name                 VARCHAR(20)
+            , last_name                   VARCHAR(20)
+            , created_by                  INT         CONSTRAINT nn_database_user_4 NOT NULL
+            , creation_date               DATE        CONSTRAINT nn_database_user_5 NOT NULL
+            , last_updated_by             INT         CONSTRAINT nn_database_user_6 NOT NULL
+            , last_update_date            DATE        CONSTRAINT nn_database_user_7 NOT NULL
+            , CONSTRAINT fk_db_user_01 FOREIGN KEY (created_by) REFERENCES studentdb.database_user (database_user_id)
+            , CONSTRAINT fk_db_user_02 FOREIGN KEY (created_by) REFERENCES studentdb.database_user (database_user_id));
+
+            -- Verify table creation --
+            SELECT so.object_id
+                 , so.name AS TABLE_NAME
+                 , so.type_desc AS DESCRIPTION
+                 , sc.name AS COLUMN_NAME -- WHEN READY, insert DATA_TYPE here
+                 , sc.max_length AS COLUMN_LENGTH
+                 , sc.precision AS PRECISION
+                 , sc.scale AS SCALE
+                 , CASE WHEN sc.is_nullable = 0 THEN 'NOT NULL'
+                        WHEN sc.is_nullable = 1 THEN 'NULLABLE'
+                        END AS NULLABLE
+                 , CASE WHEN sc.is_identity = 0 THEN 'NO'
+                        WHEN sc.is_identity = 1 THEN 'YES'
+                        END AS IDENTITY_COLUMN
+            FROM   sys.objects so INNER JOIN sys.columns sc ON so.object_id = sc.object_id
+            WHERE  so.[object_id] = OBJECT_ID('studentdb.database_user');
+
+            -- Verify not null constraints -- QUESTION: where do we find the names of NOT NULL constraints?
+            SELECT TABLE_NAME, ORDINAL_POSITION, COLUMN_NAME, IS_NULLABLE
+            FROM   INFORMATION_SCHEMA.COLUMNS
+            WHERE  TABLE_NAME = 'database_user'
+            AND    IS_NULLABLE = 'NO';
+
+            -- Verify foreign keys --
+            SELECT TABLE_NAME, COLUMN_NAME, CONSTRAINT_NAME
+            FROM INFORMATION_SCHEMA.CONSTRAINT_COLUMN_USAGE
+            WHERE CONSTRAINT_NAME NOT LIKE('pk%')
+            AND   CONSTRAINT_NAME NOT LIKE('%pk')
+            AND   TABLE_NAME = 'database_user';
+            -- sys.foreign_keys (name, type, type_description, key_index_id, is_disabled, is_system_named)
+
+            SELECT name, type, type_desc, is_disabled
+            FROM   sys.foreign_keys
+            WHERE  sys.foreign_keys.parent_object_id = OBJECT_ID('studentdb.database_user');
+
+            -- Create unique index in name column --
+            CREATE UNIQUE INDEX uq_db_user_01 ON studentdb.database_user(db_user_name);
+
+            -- Verify unique index --
+            SELECT name, type_desc, is_unique, is_primary_key
+            FROM sys.indexes
+            WHERE [object_id] = OBJECT_ID('studentdb.database_user');
+
+            /*
+            ** CREATE the COMMON_LOOKUP TABLE with its constraints (primary key, foreign keys, not nulls, and any indices)
+            */
+
+            -- Conditionally drop studentdb.common_lookup table. --
+            SELECT 'Conditionally drop studentdb.common_lookup table.' AS "Statement";
+             IF OBJECT_ID('studentdb.common_lookup', 'U') IS NOT NULL
+               DROP TABLE studentdb.common_lookup;
+
+            CREATE TABLE studentdb.studentdb.common_lookup
+            ( common_lookup_id       INT         CONSTRAINT nn_clookup_0 NOT NULL IDENTITY(1,1) CONSTRAINT pk_clookup_0 PRIMARY KEY
+            , common_lookup_context  VARCHAR(30) CONSTRAINT nn_clookup_1 NOT NULL
+            , common_lookup_type     VARCHAR(30) CONSTRAINT nn_clookup_2 NOT NULL
+            , common_lookup_meaning  VARCHAR(30) CONSTRAINT nn_clookup_3 NOT NULL
+            , created_by             INT         CONSTRAINT nn_clookup_4 NOT NULL
+            , creation_date          DATE        CONSTRAINT nn_clookup_5 NOT NULL
+            , last_updated_by        INT         CONSTRAINT nn_clookup_6 NOT NULL
+            , last_update_date       DATE        CONSTRAINT nn_clookup_7 NOT NULL
+            , CONSTRAINT fk_clookup_01 FOREIGN KEY(created_by) REFERENCES studentdb.database_user(database_user_id)
+            , CONSTRAINT fk_clookup_02 FOREIGN KEY(last_updated_by) REFERENCES studentdb.database_user(database_user_id));
+
+            -- Verify table creation --
+            SELECT TABLE_NAME, ORDINAL_POSITION, COLUMN_NAME, DATA_TYPE, CHARACTER_MAXIMUM_LENGTH
+            FROM INFORMATION_SCHEMA.COLUMNS
+            WHERE TABLE_NAME = 'common_lookup';
+
+            -- Verify not null constraints --
+            SELECT TABLE_NAME, ORDINAL_POSITION, COLUMN_NAME, IS_NULLABLE
+            FROM   INFORMATION_SCHEMA.COLUMNS
+            WHERE  TABLE_NAME = 'common_lookup'
+            AND    IS_NULLABLE = 'NO';
+
+            -- Verify foreign keys --
+            SELECT TABLE_NAME, COLUMN_NAME, CONSTRAINT_NAME
+            FROM INFORMATION_SCHEMA.CONSTRAINT_COLUMN_USAGE
+            WHERE CONSTRAINT_NAME NOT LIKE('pk%')
+            AND   CONSTRAINT_NAME NOT LIKE('%pk')
+            AND   TABLE_NAME = 'common_lookup';
+
+            -- Create index on context column --
+            CREATE INDEX common_lookup_n1 ON studentdb.common_lookup(common_lookup_context);
+
+            -- Create unique index on context and type columns --
+            CREATE UNIQUE INDEX uq_common_lookup_1 ON studentdb.common_lookup(common_lookup_context,common_lookup_type);
+
+            -- Verify indice creations --
+            SELECT name, type_desc, is_unique, is_primary_key
+            FROM sys.indexes
+            WHERE [object_id] = OBJECT_ID('studentdb.common_lookup');
+
+            -- Create foreign key constraints on database_user table --
+            ALTER TABLE studentdb.database_user
+            ADD CONSTRAINT fk_db_user_03 FOREIGN KEY (db_user_group_id) REFERENCES studentdb.common_lookup(common_lookup_id);
+
+            ALTER TABLE studentdb.database_user
+            ADD CONSTRAINT fk_db_user_04 FOREIGN KEY (db_user_type) REFERENCES studentdb.common_lookup(common_lookup_id);
+
+            -- Verify foreign key constraint creation --
+            SELECT TABLE_NAME, COLUMN_NAME, CONSTRAINT_NAME
+            FROM INFORMATION_SCHEMA.CONSTRAINT_COLUMN_USAGE
+            WHERE CONSTRAINT_NAME NOT LIKE('pk%')
+            AND   CONSTRAINT_NAME NOT LIKE('%pk')
+            AND   TABLE_NAME = 'database_user';
+
+            /*
+            ** CREATE the MEMBER TABLE with its constraints (primary key, foreign keys, not nulls, and any indices)
+            */
+
+            -- Conditionally drop studentdb.member table. --
+            SELECT 'Conditionally drop studentdb.member table.' AS "Statement";
+             IF OBJECT_ID('studentdb.member', 'U') IS NOT NULL
+               DROP TABLE studentdb.member;
+
+            CREATE TABLE studentdb.studentdb.member
+            ( member_id          INT         CONSTRAINT nn_member_0 NOT NULL IDENTITY(1,1) CONSTRAINT pk_member_0 PRIMARY KEY
+            , member_type        INT
+            , account_number     VARCHAR(20) CONSTRAINT nn_member_2 NOT NULL
+            , credit_card_number VARCHAR(20) CONSTRAINT nn_member_3 NOT NULL
+            , credit_card_type   INT         CONSTRAINT nn_member_4 NOT NULL
+            , created_by         INT         CONSTRAINT nn_member_5 NOT NULL
+            , creation_date      DATE        CONSTRAINT nn_member_6 NOT NULL
+            , last_updated_by    INT         CONSTRAINT nn_member_7 NOT NULL
+            , last_update_date   DATE        CONSTRAINT nn_member_8 NOT NULL
+            , CONSTRAINT fk_member_01 FOREIGN KEY(member_type) REFERENCES studentdb.common_lookup(common_lookup_id)
+            , CONSTRAINT fk_member_02 FOREIGN KEY(credit_card_type) REFERENCES studentdb.common_lookup(common_lookup_id)
+            , CONSTRAINT fk_member_03 FOREIGN KEY(created_by) REFERENCES studentdb.database_user(database_user_id)
+            , CONSTRAINT fk_member_04 FOREIGN KEY(last_updated_by) REFERENCES studentdb.database_user(database_user_id));
+
+            -- Verify table creation --
+            SELECT TABLE_NAME, ORDINAL_POSITION, COLUMN_NAME, DATA_TYPE, CHARACTER_MAXIMUM_LENGTH
+            FROM   INFORMATION_SCHEMA.COLUMNS
+            WHERE  TABLE_NAME = 'member';
+
+            -- Verify not null constraints --
+            SELECT TABLE_NAME, COLUMN_NAME, IS_NULLABLE
+            FROM   INFORMATION_SCHEMA.COLUMNS
+            WHERE  TABLE_NAME = 'member'
+            AND    IS_NULLABLE = 'NO';
+
+            -- Verify foreign keys --
+            SELECT TABLE_NAME, COLUMN_NAME, CONSTRAINT_NAME
+            FROM   INFORMATION_SCHEMA.CONSTRAINT_COLUMN_USAGE
+            WHERE  CONSTRAINT_NAME LIKE('fk%')
+            AND    TABLE_NAME = 'member';
+
+            -- Create index on cc_type --
+            CREATE INDEX member_n1 ON studentdb.member(credit_card_type);
+
+            -- Verify index creation --
+            SELECT NAME, TYPE_DESC, IS_UNIQUE, IS_PRIMARY_KEY
+            FROM   SYS.INDEXES
+            WHERE  [object_id] = OBJECT_ID('studentdb.member');
+
+            /*
+            ** CREATE the CONTACT TABLE with its constraints (primary key, foreign keys, not nulls, and any indices)
+            */
+
+            -- Conditionally drop studentdb.contact table. --
+            SELECT 'Conditionally drop studentdb.contact table.' AS "Statement";
+             IF OBJECT_ID('studentdb.contact', 'U') IS NOT NULL
+               DROP TABLE studentdb.contact;
+
+            CREATE TABLE studentdb.studentdb.contact
+            ( contact_id       INT         CONSTRAINT nn_contact_0 NOT NULL IDENTITY(1,1) CONSTRAINT pk_contact_0 PRIMARY KEY
+            , member_id        INT         CONSTRAINT nn_contact_1 NOT NULL
+            , contact_type     INT         CONSTRAINT nn_contact_2 NOT NULL
+            , last_name        VARCHAR(20) CONSTRAINT nn_contact_3 NOT NULL
+            , first_name       VARCHAR(20) CONSTRAINT nn_contact_4 NOT NULL
+            , middle_name      VARCHAR(20)
+            , created_by       INT         CONSTRAINT nn_contact_5 NOT NULL
+            , creation_date    DATE        CONSTRAINT nn_contact_6 NOT NULL
+            , last_updated_by  INT         CONSTRAINT nn_contact_7 NOT NULL
+            , last_update_date DATE        CONSTRAINT nn_contact_8 NOT NULL
+            , CONSTRAINT fk_contact_01 FOREIGN KEY(member_id) REFERENCES studentdb.member(member_id)
+            , CONSTRAINT fk_contact_02 FOREIGN KEY(contact_type) REFERENCES studentdb.common_lookup(common_lookup_id)
+            , CONSTRAINT fk_contact_03 FOREIGN KEY(created_by) REFERENCES studentdb.database_user(database_user_id)
+            , CONSTRAINT fk_contact_04 FOREIGN KEY(last_updated_by) REFERENCES studentdb.database_user(database_user_id));
+
+            -- Verify table creation --
+            SELECT TABLE_NAME, ORDINAL_POSITION, COLUMN_NAME, DATA_TYPE, CHARACTER_MAXIMUM_LENGTH
+            FROM   INFORMATION_SCHEMA.COLUMNS
+            WHERE  TABLE_NAME = 'contact';
+
+            -- Verify not null constraints --
+            SELECT TABLE_NAME, IS_NULLABLE
+            FROM   INFORMATION_SCHEMA.COLUMNS
+            WHERE  TABLE_NAME = 'contact'
+            AND    IS_NULLABLE = 'NO';
+
+            -- Verify foreign keys --
+            SELECT TABLE_NAME, COLUMN_NAME, CONSTRAINT_NAME
+            FROM   INFORMATION_SCHEMA.CONSTRAINT_COLUMN_USAGE
+            WHERE  CONSTRAINT_NAME LIKE('fk%')
+            AND    TABLE_NAME = 'contact';
+
+            -- Create indices on member_id and type columns --
+            CREATE INDEX contact_n1 ON studentdb.contact(member_id);
+            CREATE INDEX contact_n2 ON studentdb.contact(contact_type);
+
+            -- Verify indice creations --
+            SELECT NAME, TYPE_DESC, IS_UNIQUE, IS_PRIMARY_KEY
+            FROM   SYS.INDEXES
+            WHERE  [object_id] = OBJECT_ID('studentdb.contact');
+
+            /*
+            ** CREATE ADDRESS table and its constraints (primary key, foreign keys, not nulls, indices)
+            */
+
+            -- Conditionally drop studentdb.address table. --
+            SELECT 'Conditionally drop studentdb.address table.' AS "Statement";
+             IF OBJECT_ID('studentdb.address', 'U') IS NOT NULL
+               DROP TABLE studentdb.address;
+
+            CREATE TABLE studentdb.studentdb.address
+            ( address_id                  INT         CONSTRAINT nn_address_0 NOT NULL IDENTITY(1,1) CONSTRAINT pk_address_0 PRIMARY KEY
+            , contact_id                  INT         CONSTRAINT nn_address_1 NOT NULL
+            , address_type                INT         CONSTRAINT nn_address_2 NOT NULL
+            , city                        VARCHAR(30) CONSTRAINT nn_address_3 NOT NULL
+            , state_province              VARCHAR(30) CONSTRAINT nn_address_4 NOT NULL
+            , postal_code                 VARCHAR(20) CONSTRAINT nn_address_5 NOT NULL
+            , created_by                  INT         CONSTRAINT nn_address_6 NOT NULL
+            , creation_date               DATE        CONSTRAINT nn_address_7 NOT NULL
+            , last_updated_by             INT         CONSTRAINT nn_address_8 NOT NULL
+            , last_update_date            DATE        CONSTRAINT nn_address_9 NOT NULL
+            , CONSTRAINT fk_address_01     FOREIGN KEY(contact_id)   REFERENCES studentdb.contact(contact_id)
+            , CONSTRAINT fk_address_02     FOREIGN KEY(address_type) REFERENCES studentdb.common_lookup(common_lookup_id)
+            , CONSTRAINT fk_address_03     FOREIGN KEY(created_by)   REFERENCES studentdb.database_user(database_user_id)
+            , CONSTRAINT fk_address_04     FOREIGN KEY(last_updated_by) REFERENCES studentdb.database_user(database_user_id));
+
+            -- Verify table creation --
+            SELECT TABLE_NAME, ORDINAL_POSITION, COLUMN_NAME, DATA_TYPE, CHARACTER_MAXIMUM_LENGTH
+            FROM   INFORMATION_SCHEMA.COLUMNS
+            WHERE  TABLE_NAME = 'address';
+
+            -- Verify not null constraints --
+            SELECT TABLE_NAME, COLUMN_NAME, IS_NULLABLE
+            FROM   INFORMATION_SCHEMA.COLUMNS
+            WHERE  TABLE_NAME = 'address';
+
+            -- Verify foreign keys --
+            SELECT TABLE_NAME, COLUMN_NAME, CONSTRAINT_NAME
+            FROM   INFORMATION_SCHEMA.CONSTRAINT_COLUMN_USAGE
+            WHERE  TABLE_NAME = 'address'
+            AND    CONSTRAINT_NAME LIKE('fk%');
+
+            -- Create indices on contact_id and address_type columns
+            CREATE INDEX address_n1 ON studentdb.address(contact_id);
+            CREATE INDEX address_n2 ON studentdb.address(address_type);
+
+            -- Verify indice creations --
+            SELECT NAME, TYPE_DESC, IS_UNIQUE, IS_PRIMARY_KEY
+            FROM   SYS.INDEXES
+            WHERE  [object_id] = OBJECT_ID('studentdb.address');
+
+            /*
+            ** CREATE STREET_ADDRESS table and constraints (primary key, foreig keys, not nulls, indices)
+            */
+
+            -- Conditionally drop studentdb.street_address table. --
+            SELECT 'Conditionally drop studentdb.street_address table.' AS "Statement";
+             IF OBJECT_ID('studentdb.street_address', 'U') IS NOT NULL
+               DROP TABLE studentdb.street_address;
+
+            CREATE TABLE studentdb.studentdb.street_address
+            ( street_address_id           INT         CONSTRAINT nn_saddress_0 NOT NULL IDENTITY(1,1)
+            , address_id                  INT         CONSTRAINT nn_saddress_1 NOT NULL
+            , street_address              VARCHAR(30) CONSTRAINT nn_saddress_2 NOT NULL
+            , created_by                  INT         CONSTRAINT nn_saddress_3 NOT NULL
+            , creation_date               DATE        CONSTRAINT nn_saddress_4 NOT NULL
+            , last_updated_by             INT         CONSTRAINT nn_saddress_5 NOT NULL
+            , last_update_date            DATE        CONSTRAINT nn_saddress_6 NOT NULL
+            , CONSTRAINT pk_s_address_0   PRIMARY KEY(street_address_id)
+            , CONSTRAINT fk_s_address_1   FOREIGN KEY(address_id) REFERENCES studentdb.address(address_id)
+            , CONSTRAINT fk_s_address_3   FOREIGN KEY(created_by) REFERENCES studentdb.database_user(database_user_id)
+            , CONSTRAINT fk_s_address_4   FOREIGN KEY(last_updated_by) REFERENCES studentdb.database_user(database_user_id));
+
+            -- Verify table creation --
+            SELECT TABLE_NAME, ORDINAL_POSITION, COLUMN_NAME, DATA_TYPE, CHARACTER_MAXIMUM_LENGTH
+            FROM   INFORMATION_SCHEMA.COLUMNS
+            WHERE  TABLE_NAME = 'street_address';
+
+            -- Verify not null constraints --
+            SELECT TABLE_NAME, COLUMN_NAME, IS_NULLABLE
+            FROM   INFORMATION_SCHEMA.COLUMNS
+            WHERE  TABLE_NAME = 'street_address'
+            AND    IS_NULLABLE = 'NO';
+
+            -- Verify foreign keys --
+            SELECT TABLE_NAME, COLUMN_NAME, CONSTRAINT_NAME
+            FROM   INFORMATION_SCHEMA.CONSTRAINT_COLUMN_USAGE
+            WHERE  TABLE_NAME = 'street_address'
+            AND    CONSTRAINT_NAME LIKE ('fk%');
+
+            /*
+            ** CREATE TELEPHONE table and CONSTRAINTS (primary key, foreign keys, not nulls, indices)
+            */
+
+            -- Conditionally drop studentdb.telephone table. --
+            SELECT 'Conditionally drop studentdb.telephone table.' AS "Statement";
+             IF OBJECT_ID('studentdb.telephone', 'U') IS NOT NULL
+               DROP TABLE studentdb.telephone;
+
+            CREATE TABLE studentdb.studentdb.telephone
+            ( telephone_id                INT         CONSTRAINT nn_telephone_0 NOT NULL IDENTITY(1,1)
+            , contact_id                  INT         CONSTRAINT nn_telephone_1 NOT NULL
+            , address_id                  INT
+            , telephone_type              INT         CONSTRAINT nn_telephone_2 NOT NULL
+            , country_code                VARCHAR(3)  CONSTRAINT nn_telephone_3 NOT NULL
+            , area_code                   VARCHAR(6)  CONSTRAINT nn_telephone_4 NOT NULL
+            , telephone_number            VARCHAR(10) CONSTRAINT nn_telephone_5 NOT NULL
+            , created_by                  INT         CONSTRAINT nn_telephone_6 NOT NULL
+            , creation_date               DATE        CONSTRAINT nn_telephone_7 NOT NULL
+            , last_updated_by             INT         CONSTRAINT nn_telephone_8 NOT NULL
+            , last_update_date            DATE        CONSTRAINT nn_telephone_9 NOT NULL
+            , CONSTRAINT pk_telephone_00   PRIMARY KEY(telephone_id)
+            , CONSTRAINT fk_telephone_01   FOREIGN KEY(contact_id) REFERENCES studentdb.contact(contact_id)
+            , CONSTRAINT fk_telephone_02   FOREIGN KEY(telephone_type) REFERENCES studentdb.common_lookup(common_lookup_id)
+            , CONSTRAINT fk_telephone_03   FOREIGN KEY(created_by) REFERENCES studentdb.database_user(database_user_id)
+            , CONSTRAINT fk_telephone_04   FOREIGN KEY(last_updated_by) REFERENCES studentdb.database_user(database_user_id));
+
+            -- Verify table creation --
+            SELECT TABLE_NAME, ORDINAL_POSITION, COLUMN_NAME, DATA_TYPE, CHARACTER_MAXIMUM_LENGTH
+            FROM   INFORMATION_SCHEMA.COLUMNS
+            WHERE  TABLE_NAME = 'telephone';
+
+            -- Verify not null constraints --
+            SELECT TABLE_NAME, COLUMN_NAME, IS_NULLABLE
+            FROM   INFORMATION_SCHEMA.COLUMNS
+            WHERE  TABLE_NAME = 'telephone'
+            AND    IS_NULLABLE = 'NO';
+
+            -- Verify foreign keys --
+            SELECT TABLE_NAME, COLUMN_NAME, CONSTRAINT_NAME
+            FROM   INFORMATION_SCHEMA.CONSTRAINT_COLUMN_USAGE
+            WHERE  TABLE_NAME = 'telephone'
+            AND    CONSTRAINT_NAME LIKE('fk%');
+
+            -- Create indices on id and type columns --
+            CREATE INDEX telephone_n1 ON studentdb.telephone(contact_id,address_id);
+            CREATE INDEX telephone_n2 ON studentdb.telephone(address_id);
+            CREATE INDEX telephone_n3 ON studentdb.telephone(telephone_type);
+
+            -- Verify indice creations --
+            SELECT NAME, TYPE_DESC, IS_UNIQUE, IS_PRIMARY_KEY
+            FROM   SYS.INDEXES
+            WHERE  [object_id] = OBJECT_ID('studentdb.telephone');
+
+            /*
+            ** CREATE the RENTAL table and its constraints
+            */
+
+
+            -- Conditionally drop studentdb.rental table. --
+            SELECT 'Conditionally drop studentdb.rental table.' AS "Statement";
+             IF OBJECT_ID('studentdb.rental', 'U') IS NOT NULL
+               DROP TABLE studentdb.rental;
+
+            CREATE TABLE studentdb.studentdb.rental
+            ( rental_id              INT    CONSTRAINT nn_rental_0 NOT NULL IDENTITY(1,1)
+            , customer_id            INT    CONSTRAINT nn_rental_1 NOT NULL
+            , check_out_date         DATE   CONSTRAINT nn_rental_2 NOT NULL
+            , return_date            DATE   CONSTRAINT nn_rental_3 NOT NULL
+            , created_by             INT    CONSTRAINT nn_rental_4 NOT NULL
+            , creation_date          DATE   CONSTRAINT nn_rental_5 NOT NULL
+            , last_updated_by        INT    CONSTRAINT nn_rental_6 NOT NULL
+            , last_update_date       DATE   CONSTRAINT nn_rental_7 NOT NULL
+            , CONSTRAINT pk_rental_0 PRIMARY KEY(rental_id)
+            , CONSTRAINT fk_rental_1 FOREIGN KEY(customer_id) REFERENCES studentdb.contact(contact_id)
+            , CONSTRAINT fk_rental_2 FOREIGN KEY(created_by) REFERENCES studentdb.database_user(database_user_id)
+            , CONSTRAINT fk_rental_3 FOREIGN KEY(last_updated_by) REFERENCES studentdb.database_user(database_user_id));
+
+            -- Verify table creation -- QUESTION -> if done like this, where do we get the data type?
+            SELECT so.object_id
+                 , so.name AS TABLE_NAME
+                 , so.type_desc
+                 , sc.name AS COLUMN_NAME -- WHEN READY, insert DATA_TYPE here
+                 , sc.max_length
+                 , sc.precision
+                 , sc.scale
+                 , CASE WHEN sc.is_nullable = 0 THEN 'NOT NULL'
+                        WHEN sc.is_nullable = 1 THEN 'NULLABLE'
+                        END AS NULLABLE
+                 , CASE WHEN sc.is_identity = 0 THEN 'NO'
+                        WHEN sc.is_identity = 1 THEN 'YES'
+                        END AS IDENTITY_COLUMN
+            FROM   sys.objects so INNER JOIN sys.columns sc ON so.object_id = sc.object_id
+            WHERE  so.[object_id] = OBJECT_ID('studentdb.rental');
+
+            -- Verify not null constraints --
+            SELECT TABLE_NAME, COLUMN_NAME, IS_NULLABLE
+            FROM   INFORMATION_SCHEMA.COLUMNS
+            WHERE  TABLE_NAME = 'rental'
+            AND    IS_NULLABLE = 'NO';
+
+            -- Verify foreign keys --
+            SELECT TABLE_NAME, COLUMN_NAME, CONSTRAINT_NAME
+            FROM   INFORMATION_SCHEMA.CONSTRAINT_COLUMN_USAGE
+            WHERE  TABLE_NAME = 'rental'
+            AND    CONSTRAINT_NAME LIKE('fk%');
+
+            /*
+            ** CREATE ITEM table and constraints
+            */
+
+            -- Conditionally drop studentdb.item table. --
+            SELECT 'Conditionally drop studentdb.item table.' AS "Statement";
+             IF OBJECT_ID('studentdb.item', 'U') IS NOT NULL
+               DROP TABLE studentdb.item;
+
+            CREATE TABLE studentdb.studentdb.item
+            ( item_id              INT         CONSTRAINT nn_item_0 NOT NULL IDENTITY(1,1)
+            , item_barcode         VARCHAR(14) CONSTRAINT nn_item_1 NOT NULL
+            , item_type            INT         CONSTRAINT nn_item_2 NOT NULL
+            , item_title           VARCHAR(60) CONSTRAINT nn_item_3 NOT NULL
+            , item_subtitle        VARCHAR(60)
+            , item_rating          VARCHAR(8)  CONSTRAINT nn_item_4 NOT NULL
+            , item_release_date    DATE        CONSTRAINT nn_item_5 NOT NULL
+            , created_by           INT         CONSTRAINT nn_item_6 NOT NULL
+            , creation_date        DATE        CONSTRAINT nn_item_7 NOT NULL
+            , last_updated_by      INT         CONSTRAINT nn_item_8 NOT NULL
+            , last_update_date     DATE        CONSTRAINT nn_item_9 NOT NULL
+            , CONSTRAINT pk_item_0 PRIMARY KEY(item_id)
+            , CONSTRAINT fk_item_1 FOREIGN KEY(item_type) REFERENCES studentdb.common_lookup(common_lookup_id)
+            , CONSTRAINT fk_item_2 FOREIGN KEY(created_by) REFERENCES studentdb.database_user(database_user_id)
+            , CONSTRAINT fk_item_3 FOREIGN KEY(last_updated_by) REFERENCES studentdb.database_user(database_user_id));
+
+            -- Verify table creation --
+            SELECT TABLE_NAME, ORDINAL_POSITION, COLUMN_NAME, DATA_TYPE, CHARACTER_MAXIMUM_LENGTH
+            FROM   INFORMATION_SCHEMA.COLUMNS
+            WHERE  TABLE_NAME = 'item';
+
+            -- Verify not null constraints --
+            SELECT TABLE_NAME, COLUMN_NAME, IS_NULLABLE
+            FROM   INFORMATION_SCHEMA.COLUMNS
+            WHERE  TABLE_NAME = 'item'
+            AND    IS_NULLABLE = 'NO';
+
+            -- Verify foreign keys --
+            SELECT TABLE_NAME, COLUMN_NAME, CONSTRAINT_NAME
+            FROM   INFORMATION_SCHEMA.CONSTRAINT_COLUMN_USAGE
+            WHERE  TABLE_NAME = 'item'
+            AND    CONSTRAINT_NAME LIKE('fk%');
+
+            /*
+            ** CREATE RENTAL_ITEM table and constraints
+            */
+
+            -- Conditionally drop studentdb.rental_item table. --
+            SELECT 'Conditionally drop studentdb.rental_item table.' AS "Statement";
+             IF OBJECT_ID('studentdb.rental_item', 'U') IS NOT NULL
+               DROP TABLE studentdb.rental_item;
+
+            CREATE TABLE studentdb.studentdb.rental_item
+            ( rental_item_id              INT  CONSTRAINT nn_rental_item_0 NOT NULL IDENTITY(1,1)
+            , rental_id                   INT  CONSTRAINT nn_rental_item_1 NOT NULL
+            , item_id                     INT  CONSTRAINT nn_rental_item_2 NOT NULL
+            , created_by                  INT  CONSTRAINT nn_rental_item_3 NOT NULL
+            , creation_date               DATE CONSTRAINT nn_rental_item_4 NOT NULL
+            , last_updated_by             INT  CONSTRAINT nn_rental_item_5 NOT NULL
+            , last_update_date            DATE CONSTRAINT nn_rental_item_6 NOT NULL
+            , CONSTRAINT pk_rental_item_0 PRIMARY KEY(rental_item_id)
+            , CONSTRAINT fk_rental_item_1 FOREIGN KEY(rental_id) REFERENCES studentdb.rental(rental_id)
+            , CONSTRAINT fk_rental_item_2 FOREIGN KEY(item_id) REFERENCES studentdb.item(item_id)
+            , CONSTRAINT fk_rental_item_3 FOREIGN KEY(created_by) REFERENCES studentdb.database_user(database_user_id)
+            , CONSTRAINT fk_rental_item_4 FOREIGN KEY(last_updated_by) REFERENCES studentdb.database_user(database_user_id));
+
+            -- Verify table creation --
+            SELECT TABLE_NAME, ORDINAL_POSITION, COLUMN_NAME, DATA_TYPE, CHARACTER_MAXIMUM_LENGTH
+            FROM   INFORMATION_SCHEMA.COLUMNS
+            WHERE  TABLE_NAME = 'rental_item';
+
+            -- Verify not null constraints --
+            SELECT TABLE_NAME, COLUMN_NAME, IS_NULLABLE
+            FROM   INFORMATION_SCHEMA.COLUMNS
+            WHERE  TABLE_NAME = 'rental_item'
+            AND    IS_NULLABLE = 'NO';
+
+            -- Verify foreign keys --
+            SELECT TABLE_NAME, COLUMN_NAME, CONSTRAINT_NAME
+            FROM   INFORMATION_SCHEMA.CONSTRAINT_COLUMN_USAGE
+            WHERE  TABLE_NAME = 'rental_item'
+            AND    CONSTRAINT_NAME LIKE('fk%');            
+            </code></pre></p>
+        </main>
+        <footer>
+            <h2>Work done by Bill Enkey in a database course provided at Brigham Young University, Idaho</h2>
+            <h2>NOT intended to be used or copied.</h2>
+        </footer>
+    </body>
+</html>

@@ -1,0 +1,264 @@
+<!doctype html>
+<html lang = "en-us">
+<head>
+    <meta charset = "utf-8">
+    <title>TSQL examples by Bill Enkey</title>
+    <meta name = "author" content = "Gidgiddoni">
+    <meta name = "viewport" content = "width = device-width">
+    <link href = "../../css/lab.css" type = "text/css" rel = "stylesheet" media = "screen">
+</head>
+    <body>
+        <header><h1>Microsoft SQL examples by Bill Enkey</h1></header>
+        <main>
+            <h2>Code</h2>
+            <p><b>ALWAYS</b> test first. I'm not usually a fan of extremes, but in this case I am. The functionality of the database could only be tested once there is some data to manipulate.<br>Also, I'm not including all the scripts below. Just a couple to show what all was being inserted. As you can see, initially I created a script to call other scripts. A bit more involved in Microsoft's way of doing things, but still simple enough. Notice that there are verification queries to ensure everything inserted the way I intended.<br>And finally, for what is shown below, notice that I created a procedure for inserts. Procedures, functions, packages and triggers are especially useful in automating a database. They are more easily called from other programs or set ups &#10088;such as a back end web server&#10089; and allow more security and control to the database administrator.</p><pre><code>
+            /*
+            ** This script will seed the video store database with
+            ** enough basic data to learn the concepts of working
+            ** with a database
+            */
+
+            -- Call the other script files --
+            :r "C:\Users\Gidgiddoni\Documents\Data\library\seed\group_accounts.sql"
+            GO
+            :r "C:\Users\Gidgiddoni\Documents\Data\library\seed\item_inserts.sql"
+            GO
+            :r "C:\Users\Gidgiddoni\Documents\Data\library\seed\create_insert_contacts.sql"
+            GO
+            :r "C:\Users\Gidgiddoni\Documents\Data\library\seed\individual_accounts.sql"
+            GO
+            :r "C:\Users\Gidgiddoni\Documents\Data\library\seed\update_member.sql"
+            GO
+            :r "C:\Users\Gidgiddoni\Documents\Data\library\seed\rental_inserts.sql"
+            GO
+            :r "C:\Users\Gidgiddoni\Documents\Data\library\seed\create_view.sql"
+            GO
+
+            -- Final verification queries --
+            
+            ...
+            
+            /*
+            ** This script will create a procedure that will allow
+            ** us to automate the individual inserts process
+            */
+
+            CREATE PROCEDURE studentdb.insert_contact
+                @pv_member_type         VARCHAR(10) = 'INDIVIDUAL'
+              , @pv_account_number      VARCHAR(20)
+              , @pv_credit_card_number  VARCHAR(20)
+              , @pv_credit_card_type    VARCHAR(10)
+              , @pv_first_name          VARCHAR(20)
+              , @pv_middle_name         VARCHAR(20) = ''
+              , @pv_last_name           VARCHAR(20)
+              , @pv_contact_type        VARCHAR(10)
+              , @pv_address_type        VARCHAR(10)
+              , @pv_city                VARCHAR(20)
+              , @pv_state_province      VARCHAR(20)
+              , @pv_postal_code         VARCHAR(10)
+              , @pv_street_address      VARCHAR(30)
+              , @pv_telephone_type      VARCHAR(10)
+              , @pv_country_code        VARCHAR(3)
+              , @pv_area_code           VARCHAR(6)
+              , @pv_telephone_number    VARCHAR(10)
+              , @pv_created_by          INT     = 1
+              , @pv_last_updated_by     INT     = 1
+            AS
+            -- Declare some local variables to help handle inserts --
+            DECLARE @member_id INT;
+            DECLARE @contact_id INT;
+            DECLARE @address_id INT;
+
+            -- Check to make sure there isn't already an active transaction --
+            DECLARE @check_active_tran INT;
+            SET @check_active_tran = @@TRANCOUNT;
+
+            IF @check_active_tran > 0
+              -- Create a savepoint as a backup --
+              SAVE TRANSACTION savepoint;
+            ELSE
+              -- start transaction --
+              BEGIN TRANSACTION;
+
+            -- Add the information to the database --
+            BEGIN TRY
+              INSERT INTO studentdb.member
+              ( member_type, account_number, credit_card_number, credit_card_type
+              , created_by,creation_date,last_updated_by,last_update_date)
+              VALUES
+              ( (SELECT common_lookup_id
+                 FROM   studentdb.common_lookup
+                 WHERE  common_lookup_context = 'MEMBER'
+                 AND    common_lookup_type = @pv_member_type)
+              , @pv_account_number
+              , @pv_credit_card_number
+              , (SELECT common_lookup_id
+                 FROM   studentdb.common_lookup
+                 WHERE  common_lookup_context = 'MEMBER'
+                 AND    common_lookup_type = @pv_credit_card_type)
+              , @pv_created_by
+              , GETDATE()
+              , @pv_last_updated_by
+              , GETDATE());
+
+            -- Set the member_id variable for use in the contact inserts --
+            SET @member_id = @@IDENTITY;
+
+            -- INSERT contact into the contact table --
+            INSERT INTO studentdb.contact
+            (member_id, contact_type, last_name, first_name, middle_name
+            ,created_by, creation_date, last_updated_by, last_update_date)
+            VALUES
+            ( @member_id
+            , (SELECT common_lookup_id
+               FROM   studentdb.common_lookup
+               WHERE  common_lookup_context = 'CONTACT'
+               ANd    common_lookup_type = @pv_contact_type)
+            , @pv_last_name
+            , @pv_first_name
+            , @pv_middle_name
+            , @pv_created_by
+            , GETDATE()
+            , @pv_last_updated_by
+            , GETDATE());
+
+            -- Set contact_id variable for address and telephone inserts --
+            SET @contact_id = @@IDENTITY;
+
+            -- Insert contact's address --
+            INSERT INTO studentdb.address
+            (contact_id, address_type, city, state_province, postal_code
+            ,created_by, creation_date, last_updated_by, last_update_date)
+            VALUES
+            ( @contact_id
+            , (SELECT common_lookup_id
+               FROM   studentdb.common_lookup
+               WHERE  common_lookup_context = 'MULTIPLE'
+               AND    common_lookup_type = @pv_address_type)
+            , @pv_city
+            , @pv_state_province
+            , @pv_postal_code
+            , @pv_created_by
+            , GETDATE()
+            , @pv_last_updated_by
+            , GETDATE());
+
+            -- set address_id variable for street address and telephone inserts --
+            SET @address_id = @@IDENTITY;
+
+            -- insert street address for contact --
+            INSERT INTO studentdb.street_address
+            ( address_id, street_address
+            , created_by, creation_date, last_updated_by, last_update_date )
+            VALUES
+            ( @address_id
+            , @pv_street_address
+            , @pv_created_by
+            , GETDATE()
+            , @pv_last_updated_by
+            , GETDATE());
+
+            -- insert telephone for contact --
+            INSERT INTO studentdb.telephone
+            (contact_id, address_id, telephone_type
+            ,country_code, area_code, telephone_number
+            ,created_by, creation_date, last_updated_by, last_update_date)
+            VALUES
+            ( @contact_id
+            , @address_id
+            , (SELECT common_lookup_id
+               FROM   studentdb.common_lookup
+               WHERE  common_lookup_context = 'MULTIPLE'
+               AND    common_lookup_type = @pv_telephone_type)
+            , @pv_country_code
+            , @pv_area_code
+            , @pv_telephone_number
+            , @pv_created_by
+            , GETDATE()
+            , @pv_last_updated_by
+            , GETDATE());
+
+            COMMIT TRANSACTION;
+            END TRY
+            BEGIN CATCH
+              -- If this is a stand alone transaction, roll back --
+              IF @check_active_tran = 0
+                ROLLBACK TRANSACTION;
+              ELSE
+                ROLLBACK TRANSACTION savepoint;
+
+              -- Raise any errors --
+              DECLARE @ErrorMessage NVARCHAR(4000);
+              DECLARE @ErrorSeverity INT;
+              DECLARE @ErrorState INT;
+
+              SELECT @ErrorMessage = ERROR_MESSAGE();
+              SELECT @ErrorSeverity = ERROR_SEVERITY();
+              SELECT @ErrorState = ERROR_STATE();
+
+              RAISERROR (@ErrorMessage, -- Message text.
+                         @ErrorSeverity, -- Severity.
+                         @ErrorState -- State.
+                         );
+            END CATCH
+            GO
+            
+            ...
+            
+            /*
+            ** This script will call the previously created procedure
+            ** and enter 5 new individual accounts
+            */
+
+            studentdb.insert_contact 'INDIVIDUAL', 'R11-514-34', '1111-1111-1111-1111'
+            , 'VISA_CARD', 'Goeffrey', 'Ward', 'Clinton', 'CUSTOMER', 'HOME', 'Provo'
+            , 'Utah', '84606', '118 South 9th East', 'HOME', '001', '801','423-1234';
+
+
+            EXEC studentdb.insert_contact 'INDIVIDUAL', 'R11-514-35','1111-2222-1111-1111'
+            , 'VISA_CARD', 'Wendy', NULL, 'Moss','CUSTOMER','HOME','Provo'
+            ,'Utah','84606','1218 South 10th East', 'HOME', '001', '801', '423-1235';
+
+            EXEC studentdb.insert_contact 'INDIVIDUAL', 'R11-514-36', '1111-1111-2222-1111'
+            , 'VISA_CARD','Simon', 'Jonah', 'Gretelz', 'CUSTOMER', 'HOME', 'Provo'
+            , 'Utah', '84606', '2118 South 7th East', 'HOME', '001', '801', '423-1236';
+
+            EXEC studentdb.insert_contact 'INDIVIDUAL', 'R11-514-37', '3333-1111-1111-2222'
+            , 'VISA_CARD', 'Elizabeth', 'Jane', 'Royal', 'CUSTOMER', 'HOME', 'Provo'
+            , 'Utah', '84606', '2228 South 14th East', 'HOME', '001', '801', '423-1237';
+
+            EXEC studentdb.insert_contact 'INDIVIDUAL', 'R11-514-38', '1111-1111-3333-1111'
+            , 'VISA_CARD', 'Brian', 'Nathan', 'Smith', 'CUSTOMER', 'HOME', 'Spanish Fork'
+            , 'Utah', '84606', '333 North 2nd East', 'HOME', '001', '801', '423-1238';
+
+            -- Verify inserts --
+            SELECT   m.account_number
+            ,        CASE WHEN c.middle_name IS NULL
+                          THEN (c.last_name + ', ' + c.first_name)
+                          WHEN c.middle_name IS NOT NULL
+                          THEN (c.last_name + ', ' + c.first_name + ' ' + c.middle_name)
+                     END AS full_name
+            ,        a.city
+            ,        a.state_province
+            ,        (t.country_code + '-(' + t.area_code + ') ' + t.telephone_number) AS TELEPHONE
+            FROM     studentdb.member AS m
+            INNER JOIN studentdb.contact AS c
+            ON         m.member_id = c.member_id
+            INNER JOIN studentdb.address AS a
+            ON         c.contact_id = a.contact_id
+            INNER JOIN studentdb.street_address sa
+            ON         a.address_id = sa.address_id
+            INNER JOIN studentdb.telephone t
+            ON c.contact_id = t.contact_id AND a.address_id = t.address_id
+            WHERE    m.member_type = (SELECT common_lookup_id
+                                      FROM   common_lookup
+                                      WHERE  common_lookup_context = 'MEMBER'
+                                      AND    common_lookup_type = 'INDIVIDUAL');
+            </code></pre>
+        </main>
+        <footer>
+            <h2>Work done by Bill Enkey in a database course provided at Brigham Young University, Idaho</h2>
+            <h2>NOT intended to be used or copied.</h2>
+        </footer>
+    </body>
+</html>
