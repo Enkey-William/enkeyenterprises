@@ -1,0 +1,299 @@
+<html lang = "en-us">
+<head>
+    <meta charset = "utf-8">
+    <title>TSQL examples by Bill Enkey</title>
+    <meta name = "author" content = "Gidgiddoni">
+    <meta name = "viewport" content = "width = device-width">
+    <link href = "../../css/lab.css" type = "text/css" rel = "stylesheet" media = "screen">
+</head>
+    <body>
+        <header><h1>TSQL examples by Bill Enkey</h1></header>
+        <main>
+            <h2>RestaurantDB CREATE Script</h2>
+            <p>Below is the script I created to make the basic tables for the database. There are plenty of notes to indicate business rules and why the tables are the way they are.<pre><code>
+            /*
+            ** create the base tables
+            */
+
+            -- This table tracks main system users such as DBAs, SYSADMIN, and
+            -- profiled group accounts, including a row for processes
+            -- Business Rule: all alterations must be accounted for within the database
+            -- Business Rule: SOX (Sarbanes Oxley Act of 2002) requires the owner/CEO to be 
+            -- accountable for every transaction within the company.
+
+            -- Conditionally drop the table --
+            SELECT 'Conditionally drop restaurantdb.database_user table.' AS "Statement";
+              IF OBJECT_ID('restaurantdb.database_user', 'U') IS NOT NULL
+                DROP TABLE restaurantdb.database_user;
+
+            -- Create database_user table --
+            CREATE TABLE restaurantdb.database_user
+            ( database_user_id      INT                 NOT NULL IDENTITY(1,1) CONSTRAINT pk_db_user_01 PRIMARY KEY
+            , database_user_name VARCHAR(30) NOT NULL
+            , database_user_type  INT
+            , first_name                VARCHAR(30)
+            , middle_name             VARCHAR(30)
+            , last_name                  VARCHAR(30)
+            , created_by                INT                 NOT NULL
+            , created_date            DATE               NOT NULL
+            , last_updated_by       INT                 NOT NULL
+            , last_updated_date    DATE               NOT NULL
+            , process_id                INT);
+
+            -- This table is a general use table to track values placed in other tables
+            -- Business Rule:
+
+            -- Conditionally drop the table --
+            SELECT 'Conditionally drop restaurantdb.common_lookup table.' AS "Statement";
+             IF OBJECT_ID('restaurantdb.common_lookup', 'U') IS NOT NULL
+               DROP TABLE restaurantdb.common_lookup;
+
+            -- Create common_lookup table --
+            CREATE TABLE restaurantdb.common_lookup
+            ( common_lookup_id        INT         NOT NULL IDENTITY(1,1) CONSTRAINT pk_common_lookup PRIMARY KEY
+            , common_lookup_table   VARCHAR(30) NOT NULL
+            , common_lookup_column VARCHAR(30) NOT NULL
+            , common_lookup_type    VARCHAR(30) NOT NULL
+            , common_lookup_code    VARCHAR(5)
+            , created_by                    INT         NOT NULL
+            , created_date                DATE        NOT NULL
+            , last_updated_by           INT         NOT NULL
+            , last_updated_date        DATE        NOT NULL
+            , process_id                    INT);
+
+            -- The process table will provide details on process that make changes
+            -- to the database. Processes can be tracked by who created them and
+            -- also who called them.
+
+            -- Conditionally drop the table
+            SELECT 'Conditionally drop restaurantdb.process table.' AS "Statement";
+              IF OBJECT_ID('restaurantdb.process', 'U') IS NOT NULL
+                DROP TABLE restaurantdb.process;
+
+            -- Create the process table --
+            CREATE TABLE restaurantdb.process
+            ( process_id          INT         NOT NULL IDENTITY(1,1) CONSTRAINT pk_process PRIMARY KEY
+            , process_type        INT         NOT NULL
+            , process_description VARCHAR(45) NOT NULL
+            , created_by          INT         NOT NULL
+            , created_date        DATE        NOT NULL
+            , last_updated_by     INT         NOT NULL
+            , last_updated_date   DATE        NOT NULL);
+
+            -- The stock_item table tracks items that are obtained in their simplest form
+            -- some of these items will also need to be sellable in some form
+            -- Business Rule: track all items bought by the business, keep a list of
+            --                ingredients to create composite items
+
+            -- Conditionally drop the table --
+            SELECT 'Conditionally drop restaurantdb.stock_item table.' AS "Statement";
+              IF OBJECT_ID('restaurantdb.stock_item', 'U') IS NOT NULL
+                DROP TABLE restaurantdb.stock_item;
+
+            -- Create the stock_item table --
+            CREATE TABLE restaurantdb.stock_item
+            ( stock_item_id          INT           NOT NULL IDENTITY(1,1) CONSTRAINT pk_basic_item PRIMARY KEY
+            , stock_item_type        INT           NOT NULL
+            , stock_item_description VARCHAR(2000) NOT NULL
+            , unit_type              INT           NOT NULL
+            , unit_cost              DECIMAL(10,2) NOT NULL
+            , created_by             INT           NOT NULL
+            , created_date           DATE          NOT NULL
+            , last_updated_by        INT           NOT NULL
+            , last_updated_date      DATE          NOT NULL
+            , process_id             INT);
+
+            -- The sellable_item table is a list of items that can be sold
+            -- Though it may appear that some items were also listed in the stock_item
+            -- table they are smaller portions of the actual stock item
+
+            -- Conditionally drop the table --
+            SELECT 'Conditionally drop restaurantdb.sellable_item table.' AS "Statment";
+              IF OBJECT_ID('restaurantdb.sellable_item', 'U') IS NOT NULL
+                DROP TABLE restaurantdb.sellable_item;
+
+            -- Create the sellable_item table --
+            CREATE TABLE restaurantdb.sellable_item
+            ( sellable_item_id            INT           NOT NULL IDENTITY(1,1) CONSTRAINT pk_sellable_item PRIMARY KEY
+            , sellable_item_type          INT           NOT NULL
+            , sellable_item_description   VARCHAR(45)   NOT NULL
+            , sellable_item_cost          DECIMAL(10,2) NOT NULL
+            , created_by                  INT           NOT NULL
+            , created_date                DATE          NOT NULL
+            , last_updated_by             INT           NOT NULL
+            , last_updated_date           DATE          NOT NULL
+            , process_id                  INT);
+
+            -- The composite_item table is made up of items on the stock_item and
+            -- and sellable_item table
+            -- It also resolves the many to many relationship between the two tables;
+            -- because of this stock items can be related to their smaller sellable item
+            -- Some of these items will have recipes attached
+            -- Business Rule:
+
+            -- Conditionally drop the table --
+            SELECT 'Conditionally drop restaurantdb.composite_item table.' AS "Statement";
+              IF OBJECT_ID('restaurantdb.composite_item', 'U') IS NOT NULL
+                DROP TABLE restaurantdb.composite_item;
+
+            -- create the composite_item table --
+            CREATE TABLE restaurantdb.composite_item
+            ( composite_item_id          INT           NOT NULL IDENTITY(1,1) CONSTRAINT pk_composite_item PRIMARY KEY
+            , composite_item_type        INT           NOT NULL
+            , base_item_id               INT           NOT NULL
+            , sellable_item_id           INT           NOT NULL
+            , composite_item_create_date DATE          NOT NULL
+            , composite_item_recipe      TEXT(12000)
+            , composite_item_cost        DECIMAL(10,2) NOT NULL
+            , created_by                 INT           NOT NULL
+            , created_date               DATE          NOT NULL
+            , last_updated_by            INT           NOT NULL
+            , last_updated_date          DATE          NOT NULL
+            , process_id                 INT);
+
+            -- The customer order table is the main table used to create a receipt
+
+            -- Conditionally drop the table
+            SELECT 'Conditionally drop the restaurantdb.customer_order table.' AS "Statement";
+              IF OBJECT_ID('restaurantdb.customer_order', 'U') IS NOT NULL
+                DROP TABLE restaurantdb.customer_order;
+
+            -- Create the customer_order table --
+            CREATE TABLE restaurantdb.customer_order
+            ( customer_order_id        INT         NOT NULL IDENTITY(1,1) CONSTRAINT pk_customer_order PRIMARY KEY
+            , customer_order_date_time DATETIME    NOT NULL
+            , receipt_number           VARCHAR(30) NOT NULL
+            , created_by               INT         NOT NULL
+            , created_date             DATE        NOT NULL
+            , last_updated_by          INT         NOT NULL
+            , last_updated_date        DATE        NOT NULL
+            , process_id               INT);
+
+            -- The order_item table is used to resolve the relationship between the items
+            -- sold on an order and the order itself
+
+            -- Conditionally drop the table --
+            SELECT 'Conditionally drop the restaurantdb.order_item table.' AS "Statement";
+              IF OBJECT_ID('restaurantdb.order_item', 'U') IS NOT NULL
+                DROP TABLE restaurantdb.order_item;
+
+            -- Create the order_item table --
+            CREATE TABLE restaurantdb.order_item
+            ( order_item_id     INT  NOT NULL IDENTITY(1,1) CONSTRAINT pk_order_item PRIMARY KEY
+            , customer_order_id INT  NOT NULL
+            , sellable_item_id  INT  NOT NULL
+            , created_by        INT  NOT NULL
+            , created_date      DATE NOT NULL
+            , last_updated_by   INT  NOT NULL
+            , last_updated_date DATE NOT NULL
+            , process_id );
+
+            -- The price table keeps track of prices across the business.
+
+            -- Conditionally drop the table --
+            SELECT 'Conditionally drop the restaurantdb.price table.' AS "Statement";
+              IF OBJECT_ID('restaurantdb.price', 'U') IS NOT NULL
+                DROP TABLE restaurantdb.price;
+
+            -- Create the price table --
+            CREATE TABLE restaurantdb.price
+            ( price_id          INT         NOT NULL  IDENTITY(1,1) CONSTRAINT pk_price PRIMARY KEY
+            , price_type        INT         NOT NULL
+            , stock_item_id     INT         NOT NULL
+            , sellable_item_id  INT         NOT NULL
+            , composite_item_id INT         NOT NULL
+            , active_flag       VARCHAR(1)  NOT NULL CONSTRAINT ck_price_flag CHECK('Y','N')
+            , start_date        DATE        NOT NULL
+            , end_date          DATE
+            , created_by        INT         NOT NULL
+            , created_date      DATE        NOT NULL
+            , last_updated_by   INT         NOT NULL
+            , last_updated_date DATE        NOT NULL
+            , process_id        INT);
+
+            -- The transaction table tracks the transactions for the business
+
+            -- Conditionally drop the table --
+            SELECT 'Conditionally drop the restaurantdb.transaction table.' AS "Statment";
+              IF OBJECT_ID('restaurantdb.transaction', 'U') IS NOT NULL
+                DROP TABLE restaurantdb.transaction;
+
+            -- Create the transaction table --
+            CREATE TABLE restaurantdb.transaction
+            ( transaction_id        INT       NOT NULL IDENTITY(1,1) CONSTRAINT pk_transaction PRIMARY KEY
+            , customer_order_id     INT       NOT NULL
+            , transaction_type      INT       NOT NULL
+            , payment_type          INT       NOT NULL
+            , transaction_date_time DATETIME  NOT NULL
+            , created_by            INT       NOT NULL
+            , created_date          DATE      NOT NULL
+            , last_updated_by       INT       NOT NULL
+            , last_updated_date     DATE      NOT NULL
+            , process_id        INT);
+
+            -- The employee table keeps track of individuals who work for the business
+
+            -- Conditionally drop the table --
+            SELECT 'Conditionally drop the restaurantdb.employee table.' AS "Statement";
+              IF OBJECT_ID('restaurantdb.employee', 'U') IS NOT NULL
+                DROP TABLE restaurantdb.employee;
+
+            -- Create the employee table --
+            CREATE TABLE restaurantdb.employee
+            ( employee_id           INT                 NOT NULL IDENTITY (1,1) CONSTRAINT pk_employee PRIMARY KEY
+            , employee_type       INT                NOT NULL
+            , employee_number   VARCHAR(9)  NOT NULL
+            , last_name              VARCHAR(30) NOT NULL
+            , first_name             VARCHAR(30) NOT NULL
+            , middle_name           VARCHAR(30) NOT NULL
+            , created_by             INT                NOT NULL
+            , created_date          DATE              NOT NULL
+            , last_updated_by     INT                 NOT NULL
+            , last_updated_date  DATE             NOT NULL
+            , process_id               INT);
+
+            -- The pay table will help to keep track of what employees get paid --
+
+            -- Conditionally drop the table --
+            SELECT 'Conditionally drop the restaurantdb.pay table.' AS "Statement";
+              IF OBJECT_ID('restaurantdb.pay', 'U') IS NOT NULL
+               DROP TABLE restaurantdb.pay;
+
+            -- Create the pay table --
+            CREATE TABLE restaurantdb.pay
+            ( pay_id                   INT              NOT NULL
+            , employee_number VARCHAR(9)  NOT NULL
+            , pay_type                INT              NOT NULL
+            , pay_period             VARCHAR(10) NOT NULL
+            , amount                    DECIMAL(10,2) NOT NULL
+            , created_by             INT                NOT NULL
+            , created_date          DATE              NOT NULL
+            , last_updated_by     INT                 NOT NULL
+            , last_updated_date  DATE             NOT NULL
+            , process_id               INT);
+
+            -- The tax table keeps track of current tax rates for a company.
+            -- In addition to income tax, the company will need to supplement employee taxes
+
+            -- Conditionally drop the table --
+            SELECT 'Conditionally drop the restaurantdb.tax table.' AS "Statement";
+              IF OBJECT_ID('restaurantdb.tax', 'U') IS NOT NULL
+                DROP TABLE restaurantdb.tax;
+
+            -- Create the tax table --
+            CREATE TABLE restaurantdb.tax
+            ( tax_id                    INT                   NOT NULL IDENTITY(1,1) CONSTRAINT pk_tax PRIMARY KEY
+            , tax_type                INT                   NOT NULL
+            , amount                    DECIMAL(10,2) NOT NULL
+            , created_by             INT                   NOT NULL
+            , created_date          DATE                 NOT NULL
+            , last_updated_by     INT                   NOT NULL
+            , last_updated_date  DATE                NOT NULL
+            , process_id               INT);
+            </code></pre></p>
+        </main>
+        <footer>
+            <h2>&copy; Enkey Enterprises</h2>
+        </footer>
+    </body>
+</html>

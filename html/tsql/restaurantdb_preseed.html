@@ -1,0 +1,987 @@
+<html lang = "en-us">
+<head>
+    <meta charset = "utf-8">
+    <title>TSQL examples by Bill Enkey</title>
+    <meta name = "author" content = "Gidgiddoni">
+    <meta name = "viewport" content = "width = device-width">
+    <link href = "../../css/lab.css" type = "text/css" rel = "stylesheet" media = "screen">
+</head>
+    <body>
+        <header><h1>TSQL examples by Bill Enkey</h1></header>
+        <main>
+            <h2>RestaurantDB PRESEED Script</h2>
+            <p>Before a database can be made available to end users a certain amount of information needs to be input. This can be done via an automated process through the application accessing the database or be done manually. In this case I'm showing some manual inputs. Later on I can show examples of automating the process through functions, procedures and packages. This script is not complete, as it is simply a series of INSERT statements.<pre><code>
+            /*
+            ** This file will place basic preseed information into the database to provide full functionality.
+            ** After the preseed, data constraints will be created and tested with the seed scripts
+            */
+
+            -- insert a few basic users into the database_user table
+            -- because the common_lookup table is still empty, some values will be updated later
+            INSERT INTO restaurantdb.database_user
+            ( database_user_name
+            , database_user_type
+            , first_name
+            , middle_name
+            , last_name
+            , created_by
+            , created_date
+            , last_updated_by
+            , last_updated_date
+            , process_id)
+            VALUES
+            ( 'SYSADMIN'
+            , NULL
+            , 'Joe'
+            , NULL
+            , 'Shmoe'
+            , 1, GETDATE(), 1, GETDATE(), NULL);
+
+            INSERT INTO restaurantdb.database_user
+            ( database_user_name
+            , database_user_type
+            , first_name
+            , middle_name
+            , last_name
+            , created_by
+            , created_date
+            , last_updated_by
+            , last_updated_date
+            , process_id)
+            VALUES
+            ( 'DBA 1'
+            , NULL
+            , 'Jane'
+            , NULL
+            , 'Shmidt'
+            , 1, GETDATE(), 1, GETDATE(), NULL);
+
+            INSERT INTO restaurantdb.database_user
+            ( database_user_name
+            , database_user_type
+            , first_name
+            , middle_name
+            , last_name
+            , created_by
+            , created_date
+            , last_updated_by
+            , last_updated_date
+            , process_id)
+            VALUES
+            ( 'Process'
+            , NULL
+            , NULL
+            , NULL
+            , NULL
+            , 1, GETDATE(), 1, GETDATE(), NULL);
+
+            INSERT INTO restaurantdb.database_user
+            ( database_user_name
+            , database_user_type
+            , first_name
+            , middle_name
+            , last_name
+            , created_by
+            , created_date
+            , last_updated_by
+            , last_updated_date
+            , process_id)
+            VALUES
+            ( 'Unknown'
+            , NULL
+            , 'Anonymous'
+            , NULL
+            , NULL
+            , 1 , GETDATE(), 1, GETDATE(), NULL);
+
+            -- Insert a few rows into the common_lookup table --
+            INSERT INTO restaurantdb.common_lookup
+            ( common_lookup_table
+            , common_lookup_column
+            , common_lookup_type
+            , common_lookup_code
+            , created_by
+            , created_date
+            , last_updated_by
+            , last_updated_date
+            , process_id)
+            VALUES
+            ( 'DATABASE_USER'
+            , 'DATABASE_USER_TYPE'
+            , 'ADMIN'
+            , NULL
+            , 1, GETDATE(), 1, GETDATE(), NULL);
+
+            INSERT INTO restaurantdb.common_lookup
+            ( common_lookup_table
+            , common_lookup_column
+            , common_lookup_type
+            , common_lookup_code
+            , created_by
+            , created_date
+            , last_updated_by
+            , last_updated_date
+            , process_id)
+            VALUES
+            ( 'DATABASE_USER'
+            , 'DATABASE_USER_TYPE'
+            , 'DATABASE ADMINISTRATOR'
+            , NULL
+            , 1, GETDATE(), 1, GETDATE(), NULL);
+
+            INSERT INTO restaurantdb.common_lookup
+            ( common_lookup_table
+            , common_lookup_column
+            , common_lookup_type
+            , common_lookup_code
+            , created_by
+            , created_date
+            , last_updated_by
+            , last_updated_date
+            , process_id)
+            VALUES
+            ( 'PROCESS'
+            , 'PROCESS_TYPE'
+            , 'PRIMARY_PROCEDURE'
+            , NULL
+            , 1, GETDATE(), 1, GETDATE(), NULL;
+
+            INSERT INTO restaurantdb.common_lookup
+            ( common_lookup_table
+            , common_lookup_column
+            , common_lookup_type
+            , common_lookup_code
+            , created_by
+            , created_date
+            , last_updated_by
+            , last_updated_date
+            , process_id)
+            VALUES
+            ( 'PROCESS'
+            , 'PROCESS_TYPE'
+            , 'PRIMARY_FUNCTION'
+            , NULL
+            , 1, GETDATE(), 1, GETDATE(), NULL);
+
+            INSERT INTO restaurantdb.common_lookup
+            ( common_lookup_table
+            , common_lookup_column
+            , common_lookup_type
+            , common_lookup_code
+            , created_by
+            , created_date
+            , last_updated_by
+            , last_updated_date
+            , process_id)
+            VALUES
+            ( 'PROCESS'
+            , 'PROCESS_TYPE'
+            , 'PRIMARY_PACKAGE'
+            , NULL
+            , 1, GETDATE(), 1, GETDATE(), NULL);
+
+            INSERT INTO restaurantdb.common_lookup
+            ( common_lookup_table
+            , common_lookup_column
+            , common_lookup_type
+            , common_lookup_code
+            , created_by
+            , created_date
+            , last_updated_by
+            , last_updated_date
+            , process_id)
+            VALUES
+            ( 'PROCESS'
+            , 'PROCESS_TYPE'
+            , 'USER_PROCESS'
+            , NULL
+            , 1, GETDATE(), 1, GETDATE(), NULL);
+
+            INSERT INTO restaurantdb.common_lookup
+            ( common_lookup_table
+            , common_lookup_column
+            , common_lookup_type
+            , common_lookup_code
+            , created_by
+            , created_date
+            , last_updated_by
+            , last_updated_date
+            , process_id)
+            VALUES
+            ( 'PROCESS'
+            , 'PROCESS_TYPE'
+            , 'USER_FUNCTION'
+            , NULL
+            , 1, GETDATE(), 1, GETDATE(), NULL);
+
+            INSERT INTO restaurantdb.common_lookup
+            ( common_lookup_table
+            , common_lookup_column
+            , common_lookup_type
+            , common_lookup_code
+            , created_by
+            , created_date
+            , last_updated_by
+            , last_updated_date
+            , process_id)
+            VALUES
+            ( 'PROCESS'
+            , 'PROCESS_TYPE'
+            , 'USER_PACKAGE'
+            , NULL
+            , 1, GETDATE(), 1, GETDATE(), NULL);
+
+            INSERT INTO restaurantdb.common_lookup
+            ( common_lookup_table
+            , common_lookup_column
+            , common_lookup_type
+            , common_lookup_code
+            , created_by
+            , created_date
+            , last_updated_by
+            , last_updated_date
+            , process_id)
+            VALUES
+            ( 'STOCK_ITEM'
+            , 'STOCK_ITEM_TYPE'
+            , 'FROZEN'
+            , NULL
+            , 1, GETDATE(), 1, GETDATE(), NULL);
+
+            INSERT INTO restaurantdb.common_lookup
+            ( common_lookup_table
+            , common_lookup_column
+            , common_lookup_type
+            , common_lookup_code
+            , created_by
+            , created_date
+            , last_updated_by
+            , last_updated_date
+            , process_id)
+            VALUES
+            ( 'STOCK_ITEM'
+            , 'STOCK_ITEM_TYPE'
+            , 'REFRIGERATED'
+            , NULL
+            , 1, GETDATE(), 1, GETDATE(), NULL);
+
+            INSERT INTO restaurantdb.common_lookup
+            ( common_lookup_table
+            , common_lookup_column
+            , common_lookup_type
+            , common_lookup_code
+            , created_by
+            , created_date
+            , last_updated_by
+            , last_updated_date
+            , process_id)
+            VALUES
+            ( 'STOCK_ITEM'
+            , 'STOCK_ITEM_TYPE'
+            , 'PANTRY'
+            , NULL
+            , 1, GETDATE(), 1, GETDATE(), NULL);
+
+            INSERT INTO restaurantdb.common_lookup
+            ( common_lookup_table
+            , common_lookup_column
+            , common_lookup_type
+            , common_lookup_code
+            , created_by
+            , created_date
+            , last_updated_by
+            , last_updated_date
+            , process_id)
+            VALUES
+            ( 'STOCK_ITEM'
+            , 'STOCK_ITEM_TYPE'
+            , 'CONSTRUCTION'
+            , NULL
+            , 1, GETDATE(), 1, GETDATE(), NULL);
+
+            INSERT INTO restaurantdb.common_lookup
+            ( common_lookup_table
+            , common_lookup_column
+            , common_lookup_type
+            , common_lookup_code
+            , created_by
+            , created_date
+            , last_updated_by
+            , last_updated_date
+            , process_id)
+            VALUES
+            ( 'STOCK_ITEM'
+            , 'STOCK_ITEM_TYPE'
+            , 'TECHNOLOGY'
+            , NULL
+            , 1, GETDATE(), 1, GETDATE(), NULL);
+
+            INSERT INTO restaurantdb.common_lookup
+            ( common_lookup_table
+            , common_lookup_column
+            , common_lookup_type
+            , common_lookup_code
+            , created_by
+            , created_date
+            , last_updated_by
+            , last_updated_date
+            , process_id)
+            VALUES
+            ( 'STOCK_ITEM'
+            , 'STOCK_ITEM_TYPE'
+            , 'UNIFORM'
+            , NULL
+            , 1, GETDATE(), 1, GETDATE(), NULL);
+
+            INSERT INTO restaurantdb.common_lookup
+            ( common_lookup_table
+            , common_lookup_column
+            , common_lookup_type
+            , common_lookup_code
+            , created_by
+            , created_date
+            , last_updated_by
+            , last_updated_date
+            , process_id)
+            VALUES
+            ( 'STOCK_ITEM'
+            , 'STOCK_ITEM_TYPE'
+            , 'FURNITURE'
+            , NULL
+            , 1, GETDATE(), 1, GETDATE(), NULL);
+
+            INSERT INTO restaurantdb.common_lookup
+            ( common_lookup_table
+            , common_lookup_column
+            , common_lookup_type
+            , common_lookup_code
+            , created_by
+            , created_date
+            , last_updated_by
+            , last_updated_date
+            , process_id)
+            VALUES
+            ( 'STOCK_ITEM'
+            , 'STOCK_ITEM_TYPE'
+            , 'UTENSIL'
+            , NULL
+            , 1, GETDATE(), 1, GETDATE(), NULL);
+
+            INSERT INTO restaurantdb.common_lookup
+            ( common_lookup_table
+            , common_lookup_column
+            , common_lookup_type
+            , common_lookup_code
+            , created_by
+            , created_date
+            , last_updated_by
+            , last_updated_date
+            , process_id)
+            VALUES
+            ( 'SELLABLE_ITEM'
+            , 'SELLABLE_ITEM_TYPE'
+            , 'CONSUMABLE'
+            , NULL
+            , 1, GETDATE(), 1, GETDATE(), NULL);
+
+            INSERT INTO restaurantdb.common_lookup
+            ( common_lookup_table
+            , common_lookup_column
+            , common_lookup_type
+            , common_lookup_code
+            , created_by
+            , created_date
+            , last_updated_by
+            , last_updated_date
+            , process_id)
+            VALUES
+            ( 'SELLABLE_ITEM'
+            , 'SELLABLE_ITEM_TYPE'
+            , 'UTENSIL'
+            , NULL
+            , 1, GETDATE(), 1, GETDATE(), NULL);
+
+            INSERT INTO restaurantdb.common_lookup
+            ( common_lookup_table
+            , common_lookup_column
+            , common_lookup_type
+            , common_lookup_code
+            , created_by
+            , created_date
+            , last_updated_by
+            , last_updated_date
+            , process_id)
+            VALUES
+            ( 'SELLABLE_ITEM'
+            , 'SELLABLE_ITEM_TYPE'
+            , 'MISCELLANEOUS'
+            , NULL
+            , 1, GETDATE(), 1, GETDATE(), NULL);
+
+            INSERT INTO restaurantdb.common_lookup
+            ( common_lookup_table
+            , common_lookup_column
+            , common_lookup_type
+            , common_lookup_code
+            , created_by
+            , created_date
+            , last_updated_by
+            , last_updated_date
+            , process_id)
+            VALUES
+            ( 'COMPOSITE_ITEM'
+            , 'COMPOSITE_ITEM_TYPE'
+            , 'CONSUMABLE'
+            , NULL
+            , 1, GETDATE(), 1, GETDATE(), NULL);
+
+            INSERT INTO restaurantdb.common_lookup
+            ( common_lookup_table
+            , common_lookup_column
+            , common_lookup_type
+            , common_lookup_code
+            , created_by
+            , created_date
+            , last_updated_by
+            , last_updated_date
+            , process_id)
+            VALUES
+            ( 'COMPOSITE_ITEM'
+            , 'COMPOSITE_ITEM_TYPE'
+            , 'MISCELLANEOUS'
+            , NULL
+            , 1, GETDATE(), 1, GETDATE(), NULL);
+
+            INSERT INTO restaurantdb.common_lookup
+            ( common_lookup_table
+            , common_lookup_column
+            , common_lookup_type
+            , common_lookup_code
+            , created_by
+            , created_date
+            , last_updated_by
+            , last_updated_date
+            , process_id)
+            VALUES
+            ( 'PRICE'
+            , 'PRICE_TYPE'
+            , 'STOCK'
+            , NULL
+            , 1, GETDATE(), 1, GETDATE(), NULL);
+
+            INSERT INTO restaurantdb.common_lookup
+            ( common_lookup_table
+            , common_lookup_column
+            , common_lookup_type
+            , common_lookup_code
+            , created_by
+            , created_date
+            , last_updated_by
+            , last_updated_date
+            , process_id)
+            VALUES
+            ( 'PRICE'
+            , 'PRICE_TYPE'
+            , 'SELL'
+            , NULL
+            , 1, GETDATE(), 1, GETDATE(), NULL);
+
+            INSERT INTO restaurantdb.common_lookup
+            ( common_lookup_table
+            , common_lookup_column
+            , common_lookup_type
+            , common_lookup_code
+            , created_by
+            , created_date
+            , last_updated_by
+            , last_updated_date
+            , process_id)
+            VALUES
+            ( 'PRICE'
+            , 'PRICE_TYPE'
+            , 'COMPOSITE'
+            , NULL
+            , 1, GETDATE(), 1, GETDATE(), NULL);
+
+            INSERT INTO restaurantdb.common_lookup
+            ( common_lookup_table
+            , common_lookup_column
+            , common_lookup_type
+            , common_lookup_code
+            , created_by
+            , created_date
+            , last_updated_by
+            , last_updated_date
+            , process_id)
+            VALUES
+            ( 'TRANSACTION'
+            , 'TRANSACTION_TYPE'
+            , 'CASH'
+            , NULL
+            , 1, GETDATE(), 1, GETDATE(), NULL);
+
+            INSERT INTO restaurantdb.common_lookup
+            ( common_lookup_table
+            , common_lookup_column
+            , common_lookup_type
+            , common_lookup_code
+            , created_by
+            , created_date
+            , last_updated_by
+            , last_updated_date
+            , process_id)
+            VALUES
+            ( 'TRANSACTION'
+            , 'TRANSACTION_TYPE'
+            , 'DEBIT'
+            , NULL
+            , 1, GETDATE(), 1, GETDATE(), NULL);
+
+            INSERT INTO restaurantdb.common_lookup
+            ( common_lookup_table
+            , common_lookup_column
+            , common_lookup_type
+            , common_lookup_code
+            , created_by
+            , created_date
+            , last_updated_by
+            , last_updated_date
+            , process_id)
+            VALUES
+            ( 'TRANSACTION'
+            , 'TRANSACTION_TYPE'
+            , 'CREDIT'
+            , NULL
+            , 1, GETDATE(), 1, GETDATE(), NULL);
+
+            INSERT INTO restaurantdb.common_lookup
+            ( common_lookup_table
+            , common_lookup_column
+            , common_lookup_type
+            , common_lookup_code
+            , created_by
+            , created_date
+            , last_updated_by
+            , last_updated_date
+            , process_id)
+            VALUES
+            ( 'TRANSACTION'
+            , 'PAYMENT_TYPE'
+            , 'CASH'
+            , NULL
+            , 1, GETDATE(), 1, GETDATE(), NULL);
+
+            INSERT INTO restaurantdb.common_lookup
+            ( common_lookup_table
+            , common_lookup_column
+            , common_lookup_type
+            , common_lookup_code
+            , created_by
+            , created_date
+            , last_updated_by
+            , last_updated_date
+            , process_id)
+            VALUES
+            ( 'TRANSACTION'
+            , 'PAYMENT_TYPE'
+            , 'VISA_CARD'
+            , NULL
+            , 1, GETDATE(), 1, GETDATE(), NULL);
+
+            INSERT INTO restaurantdb.common_lookup
+            ( common_lookup_table
+            , common_lookup_column
+            , common_lookup_type
+            , common_lookup_code
+            , created_by
+            , created_date
+            , last_updated_by
+            , last_updated_date
+            , process_id)
+            VALUES
+            ( 'TRANSACTION'
+            , 'PAYMENT_TYPE'
+            , 'MASTER_CARD'
+            , NULL
+            , 1, GETDATE(), 1, GETDATE(), NULL);
+
+            INSERT INTO restaurantdb.common_lookup
+            ( common_lookup_table
+            , common_lookup_column
+            , common_lookup_type
+            , common_lookup_code
+            , created_by
+            , created_date
+            , last_updated_by
+            , last_updated_date
+            , process_id)
+            VALUES
+            ( 'TRANSACTION'
+            , 'PAYMENT_TYPE'
+            , 'DISCOVER_CARD'
+            , NULL
+            , 1, GETDATE(), 1, GETDATE(), NULL);
+
+            INSERT INTO restaurantdb.common_lookup
+            ( common_lookup_table
+            , common_lookup_column
+            , common_lookup_type
+            , common_lookup_code
+            , created_by
+            , created_date
+            , last_updated_by
+            , last_updated_date
+            , process_id)
+            VALUES
+            ( 'TRANSACTION'
+            , 'PAYMENT_TYPE'
+            , 'AMERICAN_EXPRESS'
+            , NULL
+            , 1, GETDATE(), 1, GETDATE(), NULL);
+
+            INSERT INTO restaurantdb.common_lookup
+            ( common_lookup_table
+            , common_lookup_column
+            , common_lookup_type
+            , common_lookup_code
+            , created_by
+            , created_date
+            , last_updated_by
+            , last_updated_date
+            , process_id)
+            VALUES
+            ( 'TRANSACTION'
+            , 'PAYMENT_TYPE'
+            , 'OTHER_CREDIT_CARD'
+            , NULL
+            , 1, GETDATE(), 1, GETDATE(), NULL);
+
+            INSERT INTO restaurantdb.common_lookup
+            ( common_lookup_table
+            , common_lookup_column
+            , common_lookup_type
+            , common_lookup_code
+            , created_by
+            , created_date
+            , last_updated_by
+            , last_updated_date
+            , process_id)
+            VALUES
+            ( 'EMPLOYEE'
+            , 'EMPLOYEE_TYPE'
+            , 'OWNER'
+            , NULL
+            , 1, GETDATE(), 1, GETDATE(), NULL);
+
+            INSERT INTO restaurantdb.common_lookup
+            ( common_lookup_table
+            , common_lookup_column
+            , common_lookup_type
+            , common_lookup_code
+            , created_by
+            , created_date
+            , last_updated_by
+            , last_updated_date
+            , process_id)
+            VALUES
+            ( 'EMPLOYEE'
+            , 'EMPLOYEE_TYPE'
+            , 'GENERAL_MANAGER'
+            , NULL
+            , 1, GETDATE(), 1, GETDATE(), NULL);
+
+            INSERT INTO restaurantdb.common_lookup
+            ( common_lookup_table
+            , common_lookup_column
+            , common_lookup_type
+            , common_lookup_code
+            , created_by
+            , created_date
+            , last_updated_by
+            , last_updated_date
+            , process_id)
+            VALUES
+            ( 'EMPLOYEE'
+            , 'EMPLOYEE_TYPE'
+            , 'ASSISTANT_MANAGER'
+            , NULL
+            , 1, GETDATE(), 1, GETDATE(), NULL);
+
+            INSERT INTO restaurantdb.common_lookup
+            ( common_lookup_table
+            , common_lookup_column
+            , common_lookup_type
+            , common_lookup_code
+            , created_by
+            , created_date
+            , last_updated_by
+            , last_updated_date
+            , process_id)
+            VALUES
+            ( 'EMPLOYEE'
+            , 'EMPLOYEE_TYPE'
+            , 'SHIFT_MANAGER'
+            , NULL
+            , 1, GETDATE(), 1, GETDATE(), NULL);
+
+            INSERT INTO restaurantdb.common_lookup
+            ( common_lookup_table
+            , common_lookup_column
+            , common_lookup_type
+            , common_lookup_code
+            , created_by
+            , created_date
+            , last_updated_by
+            , last_updated_date
+            , process_id)
+            VALUES
+            ( 'EMPLOYEE'
+            , 'EMPLOYEE_TYPE'
+            , 'CREW_TRAINER'
+            , NULL
+            , 1, GETDATE(), 1, GETDATE(), NULL);
+
+            INSERT INTO restaurantdb.common_lookup
+            ( common_lookup_table
+            , common_lookup_column
+            , common_lookup_type
+            , common_lookup_code
+            , created_by
+            , created_date
+            , last_updated_by
+            , last_updated_date
+            , process_id)
+            VALUES
+            ( 'EMPLOYEE'
+            , 'EMPLOYEE_TYPE'
+            , 'COOK'
+            , NULL
+            , 1, GETDATE(), 1, GETDATE(), NULL);
+
+            INSERT INTO restaurantdb.common_lookup
+            ( common_lookup_table
+            , common_lookup_column
+            , common_lookup_type
+            , common_lookup_code
+            , created_by
+            , created_date
+            , last_updated_by
+            , last_updated_date
+            , process_id)
+            VALUES
+            ( 'EMPLOYEE'
+            , 'EMPLOYEE_TYPE'
+            , 'CASHIER'
+            , NULL
+            , 1, GETDATE(), 1, GETDATE(), NULL);
+
+            INSERT INTO restaurantdb.common_lookup
+            ( common_lookup_table
+            , common_lookup_column
+            , common_lookup_type
+            , common_lookup_code
+            , created_by
+            , created_date
+            , last_updated_by
+            , last_updated_date
+            , process_id)
+            VALUES
+            ( 'EMPLOYEE'
+            , 'EMPLOYEE_TYPE'
+            , 'MAINTENANCE'
+            , NULL
+            , 1, GETDATE(), 1, GETDATE(), NULL);
+
+            INSERT INTO restaurantdb.common_lookup
+            ( common_lookup_table
+            , common_lookup_column
+            , common_lookup_type
+            , common_lookup_code
+            , created_by
+            , created_date
+            , last_updated_by
+            , last_updated_date
+            , process_id)
+            VALUES
+            ( 'EMPLOYEE'
+            , 'EMPLOYEE_TYPE'
+            , 'OFFICE_MANAGER'
+            , NULL
+            , 1, GETDATE(), 1, GETDATE(), NULL);
+
+            INSERT INTO restaurantdb.common_lookup
+            ( common_lookup_table
+            , common_lookup_column
+            , common_lookup_type
+            , common_lookup_code
+            , created_by
+            , created_date
+            , last_updated_by
+            , last_updated_date
+            , process_id)
+            VALUES
+            ( 'EMPLOYEE'
+            , 'EMPLOYEE_TYPE'
+            , 'CLERK'
+            , NULL
+            , 1, GETDATE(), 1, GETDATE(), NULL);
+
+            INSERT INTO restaurantdb.common_lookup
+            ( common_lookup_table
+            , common_lookup_column
+            , common_lookup_type
+            , common_lookup_code
+            , created_by
+            , created_date
+            , last_updated_by
+            , last_updated_date
+            , process_id)
+            VALUES
+            ( 'EMPLOYEE'
+            , 'EMPLOYEE_TYPE'
+            , 'SECRETARY'
+            , NULL
+            , 1, GETDATE(), 1, GETDATE(), NULL);
+
+            INSERT INTO restaurantdb.common_lookup
+            ( common_lookup_table
+            , common_lookup_column
+            , common_lookup_type
+            , common_lookup_code
+            , created_by
+            , created_date
+            , last_updated_by
+            , last_updated_date
+            , process_id)
+            VALUES
+            ( 'EMPLOYEE'
+            , 'EMPLOYEE_TYPE'
+            , 'MISCELLANEOUS'
+            , NULL
+            , 1, GETDATE(), 1, GETDATE(), NULL);
+
+            INSERT INTO restaurantdb.common_lookup
+            ( common_lookup_table
+            , common_lookup_column
+            , common_lookup_type
+            , common_lookup_code
+            , created_by
+            , created_date
+            , last_updated_by
+            , last_updated_date
+            , process_id)
+            VALUES
+            ( 'PAY'
+            , 'PAY_TYPE'
+            , 'SALARY'
+            , NULL
+            , 1, GETDATE(), 1, GETDATE(), NULL);
+
+            INSERT INTO restaurantdb.common_lookup
+            ( common_lookup_table
+            , common_lookup_column
+            , common_lookup_type
+            , common_lookup_code
+            , created_by
+            , created_date
+            , last_updated_by
+            , last_updated_date
+            , process_id)
+            VALUES
+            ( 'PAY'
+            , 'PAY_TYPE'
+            , 'HOURLY'
+            , NULL
+            , 1, GETDATE(), 1, GETDATE(), NULL);
+
+            INSERT INTO restaurantdb.common_lookup
+            ( common_lookup_table
+            , common_lookup_column
+            , common_lookup_type
+            , common_lookup_code
+            , created_by
+            , created_date
+            , last_updated_by
+            , last_updated_date
+            , process_id)
+            VALUES
+            ( 'PAY'
+            , 'PAY_TYPE'
+            , 'COMMISSION'
+            , NULL
+            , 1, GETDATE(), 1, GETDATE(), NULL);
+
+            INSERT INTO restaurantdb.common_lookup
+            ( common_lookup_table
+            , common_lookup_column
+            , common_lookup_type
+            , common_lookup_code
+            , created_by
+            , created_date
+            , last_updated_by
+            , last_updated_date
+            , process_id)
+            VALUES
+            ( 'PAY'
+            , 'PAY_TYPE'
+            , 'CONSTRACT'
+            , NULL
+            , 1, GETDATE(), 1, GETDATE(), NULL);
+
+            INSERT INTO restaurantdb.common_lookup
+            ( common_lookup_table
+            , common_lookup_column
+            , common_lookup_type
+            , common_lookup_code
+            , created_by
+            , created_date
+            , last_updated_by
+            , last_updated_date
+            , process_id)
+            VALUES
+            ( 'TAX'
+            , 'TAX_TYPE'
+            , 'INCOME'
+            , NULL
+            , 1, GETDATE(), 1, GETDATE(), NULL);
+
+            INSERT INTO restaurantdb.common_lookup
+            ( common_lookup_table
+            , common_lookup_column
+            , common_lookup_type
+            , common_lookup_code
+            , created_by
+            , created_date
+            , last_updated_by
+            , last_updated_date
+            , process_id)
+            VALUES
+            ( 'TAX'
+            , 'TAX_TYPE'
+            , 'MEDICAID'
+            , NULL
+            , 1, GETDATE(), 1, GETDATE(), NULL);
+
+            INSERT INTO restaurantdb.common_lookup
+            ( common_lookup_table
+            , common_lookup_column
+            , common_lookup_type
+            , common_lookup_code
+            , created_by
+            , created_date
+            , last_updated_by
+            , last_updated_date
+            , process_id)
+            VALUES
+            ( 'TAX'
+            , 'TAX_TYPE'
+            , 'SOCIAL_SECURITY'
+            , NULL
+            , 1, GETDATE(), 1, GETDATE(), NULL);
+            </code></pre></p>
+        </main>
+        <footer>
+            <h2>&copy; Enkey Enterprises</h2>
+        </footer>
+    </body>
+</html>
