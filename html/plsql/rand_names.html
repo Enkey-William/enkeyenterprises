@@ -1,0 +1,186 @@
+<!doctype html>
+<html lang = "en-us">
+<head>
+    <meta charset = "utf-8">
+    <title>Oracle PL/SQL examples by Bill Enkey</title>
+    <meta name = "author" content = "Gidgiddoni">
+    <meta name = "viewport" content = "width = device-width">
+    <link href = "../../css/lab.css" type = "text/css" rel = "stylesheet" media = "screen">
+</head>
+    <body>
+        <header><h1>PL/SQL Examples by Bill Enkey</h1></header>
+        <main>
+            <h2>CODE</h2>
+            <p>It is always best practice to test code before putting it into a production environment. Sometimes, it is necessary to populate faux data to be able to test changes to an environment. Below is an example script of how to create a list of random names. This particular list is only 1000 names long, using some typical first and last names.</p>
+            <p>I'd like to call attention to the beginning of the script. I run an anonymous block program to drop anything I'm about to create. This is particularly useful when running through many iterations at a time for testing purposes. As needed, <b>CASCADE RESTRAINTS</b> or other key words can be used to ensure the cleanup happens as expected. Since I'm not trying to cleanup my entire sandbox, I didn't see the need to use some of those phrases here.<pre><code>
+            /* 
+            ** practice with creating random names
+            */
+
+            SPOOL rand_names.txt
+
+            -- drop anything we're about to create
+            DECLARE
+                CURSOR c IS
+                (SELECT object_name, object_type
+                          FROM   user_objects
+                          WHERE  object_name IN ('FIRST_NAME_TAB', 'MIDDLE_NAME_TAB'
+                          , 'LAST_NAME_TAB', 'RAND_NAME_OBJ', 'RAND_NAME_TAB'
+                          ,'RAND_NAME', 'RAND_NAME_S1', 'GEN_RAND_NAMES'));
+            BEGIN
+                FOR i IN c LOOP
+                    IF i.object_type = 'TYPE' THEN
+                        -- annotate the next step
+                        dbms_output.put_line('DROP '||i.object_type||' '||i.object_name||'.');
+                        -- drop the object
+                        EXECUTE IMMEDIATE 'DROP '||i.object_type||' '||i.object_name|| ' FORCE';
+                    ELSIF i.object_type = 'TABLE' THEN
+                        -- annotate the next step
+                        dbms_output.put_line('DROP '||i.object_type||' '||i.object_name||'.');
+                        -- drop the object
+                        EXECUTE IMMEDIATE 'DROP '||i.object_type||' '||i.object_name;
+                    ELSE 
+                        IF i.object_type NOT IN ('TRIGGER') THEN
+                            -- annotate the next step
+                            dbms_output.put_line('DROP '||i.object_type||' '||i.object_name||'.');
+                            -- drop the object
+                            EXECUTE IMMEDIATE 'DROP '||i.object_type||' '||i.object_name;
+                        END IF;
+                    END IF;  
+                END LOOP;
+            END;
+            /
+
+            -- create a table to hold the names
+            CREATE TABLE rand_name
+            (rand_name_id   NUMBER          CONSTRAINT pk_randname_01 PRIMARY KEY
+            ,first_name     VARCHAR2(20)    CONSTRAINT nn_randname_01 NOT NULL
+            ,middle_name    VARCHAR2(20)    
+            ,last_name      VARCHAR2(20)    CONSTRAINT nn_randname_03 NOT NULL
+            ,created_by     NUMBER      
+            ,created_date   DATE);
+
+            CREATE SEQUENCE rand_name_s1;
+
+            -- create an object to reflect a part of the table
+            CREATE OR REPLACE TYPE rand_name_obj IS OBJECT
+            (first_name   VARCHAR2(20)
+            ,middle_name  VARCHAR2(1)
+            ,last_name    VARCHAR2(20));
+            /
+
+            -- create a collection of the object that reflects the table
+            CREATE OR REPLACE TYPE rand_name_tab IS TABLE OF RAND_NAME_OBJ;
+            /
+
+            -- create a collection to hold the different name types
+            CREATE OR REPLACE TYPE first_name_tab IS TABLE OF VARCHAR2(30);
+            /
+
+            CREATE OR REPLACE TYPE middle_name_tab IS TABLE OF VARCHAR2(1);
+            /
+
+            CREATE OR REPLACE TYPE last_name_tab IS TABLE OF VARCHAR2(30);
+            /
+
+            -- create the procedure
+            CREATE OR REPLACE PROCEDURE gen_rand_names IS
+
+                    -- create a list of first names 100
+                    lv_first_names FIRST_NAME_TAB := first_name_tab('Sophia', 'Olivia', 'Emma'
+                    , 'Ava', 'Isabella', 'Aria', 'Riley', 'Amelia', 'Mia', 'Layla', 'Jackson'
+                    , 'Liam', 'Noah', 'Aiden', 'Caden', 'Grayson', 'Lucas', 'Mason', 'James'
+                    , 'John', 'Robert', 'Michael', 'William', 'David', 'Richard', 'Charles'
+                    , 'Joseph', 'Thomas', 'Christopher', 'Daniel', 'Paul', 'Mark', 'Donald'
+                    , 'George', 'Kenneth', 'Steven', 'Edward', 'Brian', 'Ronald', 'Anthony'
+                    , 'Kevin', 'Jason', 'Matthew', 'Gary', 'Timothy', 'Jose', 'Larry', 'Jung'
+                    , 'Diego', 'Jose', 'Frank', 'Scott', 'Eric', 'Stephen', 'Andrew', 'Raymond'
+                    , 'Gregory', 'Joshua', 'Jerry', 'Dennis', 'Walter', 'Mary', 'Patricia'
+                    , 'Linda', 'Barbara', 'Elizabeth', 'Jennifer', 'Maria', 'Susan', 'Margaret'
+                    , 'Dorothy', 'Lisa', 'Nancy', 'karen', 'Betty', 'Helen', 'Sandra', 'Donna'
+                    , 'Carol', 'Ruth', 'Sharon', 'Michelle', 'Laura', 'Sarah', 'Kimberly'
+                    , 'Deborah', 'Jessica', 'Shirley', 'Cynthia', 'Angela', 'Melissa', 'Brenda'
+                    , 'Amy', 'Anna', 'Jonathan', 'Charlene', 'Tammy', 'Samuel', 'Malachi', 'Vera');
+
+                    -- create a list of middle initials 23
+                    lv_middle_names MIDDLE_NAME_TAB := middle_name_tab('A', 'B', 'C', 'D', 'E', 'G'
+                    , '', 'H', 'I', 'J', 'K', 'L', 'M', 'N', 'O', 'P', 'Q', 'R', 'S', 'T', 'V', 'W'
+                    , 'Z');
+
+                    -- create a list of last names 100
+
+                     lv_last_names LAST_NAME_TAB := last_name_tab('Smith', 'Johnson', 'Williams'
+                     , 'Jones','Brown', 'Davis', 'Miller', 'Wilson', 'Moore', 'Taylor', 'Anderson'
+                     , 'Thomas', 'Jackson', 'White', 'Harris', 'Martin', 'Thompson'
+                     , 'Garcia','Martinez', 'Robinson', 'Clark', 'Rodriguez','Lewis','Lee', 'Walker'
+                     , 'Hall', 'Allen', 'Young', 'Hernandez', 'King', 'Wright', 'Lopez', 'Hill'
+                     , 'Scott', 'Green', 'Adams', 'Baker', 'Gonzalez', 'Nelson', 'Carter', 'Mitchell'
+                     , 'Perez', 'Roberts', 'Turner', 'Phillips', 'Campbell', 'Parker', 'Evans'
+                     , 'Edwards', 'Collins', 'Stewart', 'Sanchez', 'Morris', 'Rogers', 'Reed', 'Cook'
+                     , 'Morgan', 'Bell', 'Murphy', 'Bailey', 'Rivera', 'Cooper', 'Richardson', 'Cox'
+                     , 'Howard', 'Ward', 'Torres', 'Peterson', 'Gray', 'Ramirez', 'James', 'Watson'
+                     , 'Brooks', 'Kelly', 'Sanders', 'Price', 'Bennett', 'Wood', 'Barnes', 'Ross'
+                     , 'Henderson', 'Coleman', 'Jenkins', 'Perry', 'Powell', 'Long', 'Patterson'
+                     , 'Hughes', 'Flores', 'Washington', 'Butler', 'Simmons', 'Foster', 'Gonzales'
+                     , 'Bryant', 'Alexander', 'Russell', 'Griffin', 'Diaz', 'Hayes');
+
+                     lv_rand_name_full  RAND_NAME_TAB := RAND_NAME_TAB();
+                     lv_first_name      VARCHAR2(20);
+                     lv_middle_initial  VARCHAR2(1);
+                     lv_last_name       VARCHAR2(20);
+
+                BEGIN
+                    -- create a loop to match names
+                    FOR i IN 1..1000 LOOP
+                        -- the dbms_random.value populates random numbers in general, and 
+                        -- unless curbed will generate float or decimal point values almost
+                        -- exclusively (anyone else notice that the third time you run it its 
+                        -- negative?) To make sure I get a positive integer, I simply use the TRUNC 
+                        -- function and provide a range. FLOOR, CEILING, and ROUND could also be used.
+                        lv_first_name := lv_first_names(TRUNC(DBMS_RANDOM.VALUE(1,101)));
+                        lv_middle_initial := lv_middle_names(TRUNC(DBMS_RANDOM.VALUE(1,24)));
+                        lv_last_name := lv_last_names(TRUNC(DBMS_RANDOM.VALUE(1,101)));
+
+                        -- the collection was initialized as a null set, so this is necessary
+                        -- even if there was only one iteration. 
+                        lv_rand_name_full.EXTEND;
+                        -- many try to use '.i' here instead of '.COUNT' three guesses why
+                        -- it won't work.
+                        lv_rand_name_full(lv_rand_name_full.COUNT) := RAND_NAME_OBJ(lv_first_name, lv_middle_initial, lv_last_name);
+                    END LOOP;
+
+                    -- add the names from the object into the table
+                    FOR i IN 1..lv_rand_name_full.COUNT LOOP
+                        INSERT INTO rand_name
+                        VALUES
+                        (rand_name_s1.NEXTVAL
+                        ,lv_rand_name_full(i).first_name
+                        ,lv_rand_name_full(i).middle_name
+                        ,lv_rand_name_full(i).last_name
+                        ,1, SYSDATE);
+                    END LOOP;
+
+            END gen_rand_names;
+            /
+            LIST
+            SHOW ERRORS
+
+            -- execute the procedure
+            EXECUTE gen_rand_names();
+
+            -- Check to make sure it worked
+            SET LINESIZE 100
+            COLUMN fname FORMAT A20 HEADING "First Name"
+            COLUMN midi  FORMAT A4  HEADING "M.I."
+            COLUMN lname FORMAT A20 HEADING "Last Name"
+            SELECT first_name fname, middle_name midi, last_name lname
+            FROM rand_name ORDER BY rand_name_id;
+
+            SPOOL OFF
+            </code></pre></p>
+        </main>
+        <footer>
+            <h2>&copy; Enkey Enterprises</h2>
+        </footer>
+    </body>
+</html>
